@@ -139,6 +139,31 @@ body {
     background: var(--gray-light);
 }
 
+.btn-info {
+    background: var(--info-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: var(--transition);
+}
+
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: var(--transition);
+}
+
 .btn-danger {
     background: var(--danger-color);
     color: white;

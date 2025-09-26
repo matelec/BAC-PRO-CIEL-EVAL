@@ -175,20 +175,16 @@ function initManualForm() {
 function submitManualUserForm() {
     const form = document.getElementById('userForm');
     const formData = new FormData(form);
-    const formObject = Object.fromEntries(formData);
-    
+
     // Validation
-    if (!formObject.nom || !formObject.prenom || !formObject.email) {
+    if (!formData.get('nom') || !formData.get('prenom') || !formData.get('email')) {
         showNotification('Veuillez remplir tous les champs obligatoires', 'warning');
         return;
     }
-    
-    fetch('/api/utilisateurs', {
+
+    fetch('/ajouter-utilisateur', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formObject)
+        body: formData   // ⚠️ envoi direct, pas besoin de headers JSON
     })
     .then(response => response.json())
     .then(data => {
@@ -205,6 +201,7 @@ function submitManualUserForm() {
         showNotification('Erreur lors de l\'ajout', 'error');
     });
 }
+
 
 // ===== ACTIONS UTILISATEURS =====
 function initUserActions() {

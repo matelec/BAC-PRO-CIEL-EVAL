@@ -96,22 +96,77 @@ def valider_item():
 
 @app.route('/ajouter-utilisateur', methods=['POST'])
 def ajouter_utilisateur():
-    data = {
-        'nom': request.form['nom'],
-        'prenom': request.form['prenom'],
-        'email': request.form['email'],
-        'classe': request.form['classe'],
-        'specialite': request.form.get('specialite', '')
-    }
-    
+    # Si le frontend envoie du JSON
+    if request.is_json:
+        data = request.get_json()
+    else:
+        # Sinon, lecture des données formulaire
+        data = {
+            'nom': request.form.get('nom'),
+            'prenom': request.form.get('prenom'),
+            'email': request.form.get('email'),
+            'date_naissance': request.form.get('date_naissance'),
+            'classe': request.form.get('classe'),
+            'date_entree_bac': request.form.get('date_entree_bac'),
+            'date_certification': request.form.get('date_certification'),
+            'specialite': request.form.get('specialite', '')
+        }
+
     try:
         response = requests.post(f"{BACKEND_URL}/api/utilisateurs", json=data)
         if response.status_code == 201:
-            return redirect(url_for('utilisateurs'))
-    except:
-        pass
+            return jsonify({'id': response.json().get('id')})
+        else:
+            return jsonify({'error': 'Backend error'}), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/modifier_utilisateur', methods=['POST'])
+def modifier_utilisateur_route():
     
-    return redirect(url_for('utilisateurs'))
+    data={
+        'nom': request.form.get('nom'),
+        'prenom': request.form.get('prenom'),
+        'email': request.form.get('email'),
+        'date_naissance': request.form.get('date_naissance'),
+        'classe': request.form.get('classe'),
+        'date_entree_bac': request.form.get('date_entree_bac'),
+        'date_certification': request.form.get('date_certification'),
+        'specialite': request.form.get('specialite', '')
+        }
+
+    try:
+        response = requests.put(f"{BACKEND_URL}/api/utilisateurs/{user_id}", json=data)
+        if response.status_code == 201:
+            return jsonify({'id': response.json().get('id')})
+        else:
+            return jsonify({'error': 'Backend error'}), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/supprimer_utilisateur', methods=['POST'])
+def supprimer_utilisateur_route():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+
+        print(f"🔍 Tentative de suppression de l'utilisateur ID: {user_id}")  # Debug
+        
+
+        if not user_id:
+            return jsonify({'error': 'ID utilisateur manquant'}), 400
+
+        # Envoi de la requête DELETE vers le backend
+        response = requests.delete(f"{BACKEND_URL}/api/utilisateurs/{user_id}")
+
+        if response.status_code == 200:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Erreur backend'}), response.status_code
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
