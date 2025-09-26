@@ -168,5 +168,30 @@ def supprimer_utilisateur_route():
         return jsonify({'error': str(e)}), 500
 
 
+
+@app.route('/import-utilisateurs', methods=['POST'])
+def import_utilisateurs():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Aucun fichier reçu'}), 400
+
+    file = request.files['file']
+
+    try:
+        # Envoyer au backend
+        response = requests.post(
+            f"{BACKEND_URL}/api/utilisateurs/import-excel",
+            files={'file': (file.filename, file.stream, file.mimetype)}
+        )
+
+        # Répercuter la réponse du backend vers le frontend
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Erreur backend'}), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -205,10 +205,13 @@ def importer_utilisateurs_excel():
             if os.path.exists(filepath):
                 os.remove(filepath)
             
-            return jsonify(resultat)
+            return jsonify(resultat), 200
             
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            import traceback
+            traceback_str = traceback.format_exc()
+            print(f"💥 Erreur import-excel: {traceback_str}", flush=True)
+            return jsonify({"error": str(e), "traceback": traceback_str}), 500
     
     return jsonify({"error": "Type de fichier non autorisé. Utilisez .xlsx ou .xls"}), 400
 

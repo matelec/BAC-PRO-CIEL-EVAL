@@ -129,33 +129,29 @@ function initFileUpload() {
 
 function handleFileSelect(file) {
     if (!file) return;
-    
-    const progressSection = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    
-    if (progressSection) progressSection.style.display = 'block';
-    if (progressFill) progressFill.style.width = '0%';
-    if (progressText) progressText.textContent = 'Traitement du fichier...';
-    
-    // Simulation progression
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += 10;
-        if (progressFill) progressFill.style.width = progress + '%';
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            if (progressText) progressText.textContent = 'Fichier traité avec succès !';
-            setTimeout(() => {
-                if (progressSection) progressSection.style.display = 'none';
-                showNotification('Utilisateurs importés avec succès', 'success');
-                // Recharger la page après import
-                setTimeout(() => window.location.reload(), 1000);
-            }, 1000);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("import-utilisateurs", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification("Utilisateurs importés avec succès", "success");
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification("Erreur: " + (data.error || "Inconnue"), "error");
         }
-    }, 200);
+    })
+    .catch(error => {
+        console.error("Erreur:", error);
+        showNotification("Erreur lors de l'import", "error");
+    });
 }
+
 
 function downloadTemplate() {
     showNotification('Template téléchargé', 'info');
