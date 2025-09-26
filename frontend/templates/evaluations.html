@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Évaluations - BAC PRO CIEL{% endblock %}
+
+{% block content %}
+<div class="evaluations-page">
+    <h1>Gestion des Évaluations</h1>
+    
+    <div class="section-card">
+        <h2>Créer une nouvelle évaluation</h2>
+        <form method="POST" action="{{ url_for('creer_evaluation') }}" class="evaluation-form">
+            <div class="form-group">
+                <label>Module:</label>
+                <input type="text" name="module" placeholder="Nom du module" required>
+            </div>
+            <div class="form-group">
+                <label>Contexte:</label>
+                <textarea name="contexte" placeholder="Contexte pédagogique..." rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Sélectionner les items à évaluer:</label>
+                <div class="items-selection">
+                    {% for competence in competences %}
+                    <div class="competence-group">
+                        <h4>{{ competence.code }} - {{ competence.libelle }}</h4>
+                        <div class="items-list">
+                            {% for item in items %}
+                            {% if item.competence_code == competence.code %}
+                            <label class="item-checkbox">
+                                <input type="checkbox" name="items_ids" value="{{ item.id }}">
+                                <span class="item-code">{{ item.code_item }}</span>
+                                <span class="item-desc">{{ item.description }}</span>
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-primary">Créer l'évaluation</button>
+        </form>
+    </div>
+
+    <div class="section-card">
+        <h2>Évaluations existantes ({{ evaluations|length }})</h2>
+        <div class="evaluations-list">
+            {% for eval in evaluations %}
+            <div class="evaluation-card">
+                <div class="eval-info">
+                    <h3>{{ eval.module }}</h3>
+                    <p>{{ eval.contexte }}</p>
+                    <small>Créé le {{ eval.date_creation[:10] }} • {{ eval.nombre_items }} items</small>
+                </div>
+                <div class="eval-actions">
+                    <a href="{{ url_for('detail_evaluation', evaluation_id=eval.id) }}" class="btn-primary">
+                        Détail
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

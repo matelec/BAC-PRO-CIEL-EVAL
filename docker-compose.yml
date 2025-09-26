@@ -1,0 +1,85 @@
+
+services:
+  database:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: bacprociel
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    # NE PAS exposer le port PostgreSQL à l'extérieur - interne uniquement
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend-network  # Réseau interne uniquement
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d bacprociel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"  # API accessible sur le réseau externe
+    environment:
+      DATABASE_HOST: database
+      DATABASE_NAME: bacprociel
+      DATABASE_USER: admin
+      DATABASE_PASSWORD: password
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - backend-network   # Réseau interne (base de données)
+      - frontend-network  # Réseau externe (communication frontend)
+    volumes:
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:5000"  # Frontend accessible sur le port 80
+    environment:
+      BACKEND_URL: http://backend:5000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - frontend-network  # Réseau externe uniquement
+    volumes:
+      - ./frontend:/app
+    restart: unless-stopped
+
+# Définition des réseaux
+networks:
+  # Réseau backend - INTERNE (isolé)
+  backend-network:
+    driver: bridge
+    internal: true  # 🔒 Réseau interne - pas d'accès externe
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+  # Réseau frontend - EXTERNE (accès public)
+  frontend-network:
+    driver: bridge
+    # internal: false par défaut (accès externe)
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+          gateway: 172.21.0.1
+
+volumes:
+  postgres_data:
+    driver: local

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - BAC PRO CIEL{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>Gestion des Compétences - BAC PRO CIEL</h1>
+        <p>Application de suivi des évaluations et validations des compétences</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Utilisateurs</h3>
+            <p class="stat-number">{{ utilisateurs|length }}</p>
+            <a href="{{ url_for('utilisateurs') }}" class="btn-primary">Gérer</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Évaluations</h3>
+            <p class="stat-number">{{ evaluations|length }}</p>
+            <a href="{{ url_for('evaluations') }}" class="btn-primary">Voir</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Compétences</h3>
+            <p class="stat-number">9</p>
+            <span class="stat-desc">Référentiel complet</span>
+        </div>
+    </div>
+
+    <div class="recent-activity">
+        <h2>Activité récente</h2>
+        <div class="activity-list">
+            <div class="activity-item">
+                <span class="activity-icon">📝</span>
+                <div class="activity-content">
+                    <strong>Nouvelle évaluation créée</strong>
+                    <span>Projet communication - 15/03/2024</span>
+                </div>
+            </div>
+            <div class="activity-item">
+                <span class="activity-icon">✅</span>
+                <div class="activity-content">
+                    <strong>Validations effectuées</strong>
+                    <span>5 compétences validées aujourd'hui</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
