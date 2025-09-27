@@ -150,10 +150,23 @@ class Database:
         Importe des utilisateurs depuis un fichier Excel
         """
         try:
+            print(f"📁 Lecture du fichier: {fichier_excel}")
             df = pd.read_excel(fichier_excel)
+            print(f"📊 Données lues: {len(df)} lignes")
+        
+            # Nettoyage des colonnes
             df.columns = df.columns.str.strip().str.lower()
             print(f"📊 Colonnes détectées: {list(df.columns)}")
-            
+        
+            # Vérifier si les colonnes essentielles existent
+            required_columns = ['nom', 'prenom']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return {
+                    'erreur': f"Colonnes manquantes: {', '.join(missing_columns)}",
+                    'colonnes_detectees': list(df.columns)
+                }
+        
             utilisateurs_importes = []
             erreurs = []
             
@@ -188,6 +201,8 @@ class Database:
                             erreurs.append(f"Ligne {index + 2}: L'email {email} existe déjà")
                             continue
                         
+                        print(f"✅ Insertion: {nom} {prenom} - {email} - {classe}")
+
                         cursor.execute("""
                             INSERT INTO utilisateurs (nom, prenom, email, classe, date_naissance, date_entree_bac, date_certification, specialite)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, nom, prenom, email, classe
@@ -204,8 +219,10 @@ class Database:
                         continue
                 
                 self.connection.commit()
+                print(f"🎉 Import terminé: {len(utilisateurs_importes)} utilisateurs importés")
                 
             return {
+                'success': True,
                 'utilisateurs_importes': utilisateurs_importes,
                 'total_importes': len(utilisateurs_importes),
                 'erreurs': erreurs,
@@ -216,7 +233,13 @@ class Database:
             self.connection.rollback()
             error_msg = f"Erreur lors de la lecture du fichier: {str(e)}"
             print(f"❌ {error_msg}")
-            return {'erreur': error_msg}
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'erreur': error_msg,
+                'traceback': traceback.format_exc()
+            }
 
     def _extraire_valeur(self, row, noms_possibles):
         for nom in noms_possibles:

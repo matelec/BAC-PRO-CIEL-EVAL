@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Référentiel des Compétences - BAC PRO CIEL{% endblock %}
+
+{% block content %}
+<div class="referentiel-page">
+    <div class="page-header">
+        <h1>📚 Référentiel des Compétences</h1>
+        <p class="page-subtitle">BAC PRO Cybersécurité, Informatique et réseaux, Electronique (CIEL)</p>
+    </div>
+
+    <div class="referentiel-stats">
+        <div class="stat-item">
+            <span class="stat-number">{{ competences|length }}</span>
+            <span class="stat-label">Compétences</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">{{ total_items }}</span>
+            <span class="stat-label">Items d'évaluation</span>
+        </div>
+    </div>
+
+    <div class="competences-grid">
+        {% for competence in competences %}
+        <div class="competence-card">
+            <div class="competence-header">
+                <h3 class="competence-code">{{ competence.code }}</h3>
+                <h4 class="competence-title">{{ competence.libelle }}</h4>
+            </div>
+            
+            <div class="items-list">
+                {% for item in items %}
+                {% if item.competence_id == competence.id %}
+                <div class="item-line">
+                    <span class="item-code">{{ item.code_item }}</span>
+                    <span class="item-description">{{ item.description }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            
+            <div class="competence-footer">
+                <span class="items-count">{{ items|selectattr('competence_id', 'equalto', competence.id)|list|length }} items</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Version compacte pour impression -->
+    <div class="print-version" style="display: none;">
+        <h2>Référentiel BAC PRO CIEL - Version compacte</h2>
+        {% for competence in competences %}
+        <div class="print-competence">
+            <strong>{{ competence.code }} - {{ competence.libelle }}</strong>
+            <ul>
+                {% for item in items %}
+                {% if item.competence_id == competence.id %}
+                <li><strong>{{ item.code_item }}:</strong> {{ item.description }}</li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="page-actions">
+        <button onclick="window.print()" class="btn-primary">🖨️ Imprimer le référentiel</button>
+        <a href="{{ url_for('index') }}" class="btn-secondary">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation d'apparition des cartes
+    const cards = document.querySelectorAll('.competence-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+
+    // Recherche en temps réel
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔍 Rechercher dans le référentiel...';
+    searchInput.className = 'referentiel-search';
+    
+    const header = document.querySelector('.page-header');
+    header.appendChild(searchInput);
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                card.style.display = 'block';
+                card.style.animation = 'highlight 0.5s ease';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Animation de surbrillance
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes highlight {
+        0% { background-color: transparent; }
+        50% { background-color: #fff3cd; }
+        100% { background-color: transparent; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

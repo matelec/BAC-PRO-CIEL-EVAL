@@ -186,34 +186,68 @@ def supprimer_utilisateur_form():
 
 @app.route('/api/utilisateurs/import-excel', methods=['POST'])
 def importer_utilisateurs_excel():
+    print("🔍 Début import Excel")
+    
     if 'file' not in request.files:
-        return jsonify({"error": "Aucun fichier fourni"}), 400
+        print("❌ Aucun fichier dans la requête")
+        return jsonify({"success": False, "error": "Aucun fichier fourni"}), 400
     
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "Aucun fichier sélectionné"}), 400
+    print(f"📁 Fichier reçu: {file.filename}")
     
+    if file.filename == '':
+        print("❌ Nom de fichier vide")
+        return jsonify({"success": False, "error": "Aucun fichier sélectionné"}), 400
+
     if file and allowed_file(file.filename):
         try:
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            print(f"💾 Sauvegarde vers: {filepath}")
+            
             file.save(filepath)
             
+            # Vérifier que le fichier existe et a une taille > 0
+            if not os.path.exists(filepath):
+                return jsonify({"success": False, "error": "Erreur lors de la sauvegarde du fichier"}), 500
+                
+            file_size = os.path.getsize(filepath)
+            print(f"📊 Taille du fichier: {file_size} bytes")
+            
+            if file_size == 0:
+                return jsonify({"success": False, "error": "Le fichier est vide"}), 400
+            
             resultat = db.importer_utilisateurs_excel(filepath)
+            print(f"🎯 Résultat import: {resultat}")
             
             # Nettoyer le fichier après traitement
             if os.path.exists(filepath):
                 os.remove(filepath)
+                print("🗑️ Fichier temporaire supprimé")
             
-            return jsonify(resultat), 200
+            # Vérifier le résultat
+            if resultat.get('success', False):
+                return jsonify(resultat), 200
+            else:
+                return jsonify(resultat), 500
             
         except Exception as e:
             import traceback
             traceback_str = traceback.format_exc()
             print(f"💥 Erreur import-excel: {traceback_str}", flush=True)
-            return jsonify({"error": str(e), "traceback": traceback_str}), 500
+            
+            # Nettoyer le fichier en cas d'erreur
+            if 'filepath' in locals() and os.path.exists(filepath):
+                os.remove(filepath)
+                
+            return jsonify({
+                "success": False,
+                "error": str(e), 
+                "traceback": traceback_str
+            }), 500
     
-    return jsonify({"error": "Type de fichier non autorisé. Utilisez .xlsx ou .xls"}), 400
+    return jsonify({"success": False, "error": "Type de fichier non autorisé. Utilisez .xlsx ou .xls"}), 400
+
 
 # ===== ROUTES RÉFÉRENTIEL =====
 @app.route('/api/competences', methods=['GET'])

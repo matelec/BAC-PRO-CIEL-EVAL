@@ -28,30 +28,16 @@
                     <i class="fas fa-cloud-upload-alt fa-3x"></i>
                     <h4>Déposer le fichier Excel ici</h4>
                     <p class="text-muted">Format attendu: .xlsx ou .xls</p>
-                    <input type="file" id="excelFile" accept=".xlsx,.xls" class="d-none">
-                  <!-- <button class="btn-secondary mt-2" id="chooseFileBtn">
+                    <p class="text-muted">Ou cliquez pour sélectionner un fichier</p>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                    <button type="button" class="btn-secondary mt-2" id="chooseFileBtn">
                         <i class="fas fa-folder-open"></i> Choisir un fichier
-                    </button>--> 
+                    </button>
                 </div>
                 
                 <div class="import-info">
                     <h5>Format attendu :</h5>
-                    <table class="format-table">
-                        <thead>
-                            <tr>
-                                <th>Colonne</th>
-                                <th>Description</th>
-                                <th>Exemple</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>Nom</td><td>Nom de famille</td><td>Dupont</td></tr>
-                            <tr><td>Prénom</td><td>Prénom</td><td>Jean</td></tr>
-                            <tr><td>Email</td><td>Adresse email</td><td>jean.dupont@exemple.fr</td></tr>
-                            <tr><td>Classe</td><td>Seconde/Première/Terminale</td><td>Terminale</td></tr>
-                            <tr><td>Spécialité</td><td>Option (facultatif)</td><td>Cybersécurité</td></tr>
-                        </tbody>
-                    </table>
+                    
                     
                     <div class="mt-3">
                         <button class="btn-secondary" id="downloadTemplateBtn">
@@ -61,12 +47,7 @@
                 </div>
             </div>
             
-            <div id="uploadProgress" class="progress-section">
-                <div class="progress">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text" id="progressText">Traitement en cours...</div>
-            </div>
+            
         </div>
     </div>
 
@@ -124,7 +105,7 @@
                 </div>  
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-success">
+                    <button type="submit" class="btn-secondary">
                         <i class="fas fa-save"></i> Ajouter l'utilisateur
                     </button>
                     <button type="reset" class="btn-secondary">
@@ -171,7 +152,9 @@
                             <th>Email</th>
                             <th>Classe</th>
                             <th>Naissance</th>
-                            <th>Date d'inscription</th>
+                            <th>Entrée en formation</th>
+                            <th>Certification</th>
+                            <th>Diplôme</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -198,18 +181,28 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <small class="text-muted">
-                                    {% if user.date_inscription %}
-                                        {% if user.date_inscription is string %}
-                                            {{ user.date_inscription }}
-                                        {% else %}
-                                            {{ user.date_inscription.strftime('%d/%m/%Y') }}
-                                        {% endif %}
+                                {% if user.date_entree_bac %}
+                                <span class="badge badge-classe">{{ user.date_entree_bac }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>
+                                    {% if user.date_certification %}
+                                    <span class="badge badge-naissance">{{ user.date_certification }}</span>
                                     {% else %}
-                                        -
+                                    <span class="text-muted">-</span>
                                     {% endif %}
                                 </small>
                             </td>
+                            <td>
+                                {% if user.specialite %}
+                                <span class="badge badge-diplome">{{ user.specialite }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>    
                             <td>
                                 <div class="table-actions">
                                     <button class="btn-icon btn-info view-profile-btn" 
@@ -311,7 +304,7 @@
 
             <div class="form-actions">
                 <input type="hidden" id="edit_user_id" name="user_id">
-                <button type="submit" class="btn-success">
+                <button type="submit" class="btn-secondary" id="saveEditBtn">
                     <i class="fas fa-save"></i> Enregistrer les modifications
                 </button>
                 <button type="button" class="btn-secondary" id="cancelEditBtn">

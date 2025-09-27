@@ -14,7 +14,11 @@ def get_backend_data(endpoint):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    utilisateurs = get_backend_data('/api/utilisateurs')
+    evaluations_data = get_backend_data('/api/evaluations')
+    return render_template('index.html', 
+                        utilisateurs=utilisateurs,
+                        evaluations=evaluations_data)
 
 @app.route('/utilisateurs')
 def utilisateurs():
@@ -123,26 +127,34 @@ def ajouter_utilisateur():
 
 @app.route('/modifier_utilisateur', methods=['POST'])
 def modifier_utilisateur_route():
-    
-    data={
-        'nom': request.form.get('nom'),
-        'prenom': request.form.get('prenom'),
-        'email': request.form.get('email'),
-        'date_naissance': request.form.get('date_naissance'),
-        'classe': request.form.get('classe'),
-        'date_entree_bac': request.form.get('date_entree_bac'),
-        'date_certification': request.form.get('date_certification'),
-        'specialite': request.form.get('specialite', '')
+    try:
+        # Récupérer user_id depuis le formulaire
+        user_id = request.form.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'ID utilisateur manquant'}), 400
+        
+        user_id = int(user_id)
+
+        data={
+            'nom': request.form.get('nom'),
+            'prenom': request.form.get('prenom'),
+            'email': request.form.get('email'),
+            'date_naissance': request.form.get('date_naissance'),
+            'classe': request.form.get('classe'),
+            'date_entree_bac': request.form.get('date_entree_bac'),
+            'date_certification': request.form.get('date_certification'),
+            'specialite': request.form.get('specialite', '')
         }
 
-    try:
         response = requests.put(f"{BACKEND_URL}/api/utilisateurs/{user_id}", json=data)
-        if response.status_code == 201:
-            return jsonify({'id': response.json().get('id')})
+        if response.status_code == 200:
+            return jsonify({'success': True})
         else:
-            return jsonify({'error': 'Backend error'}), response.status_code
+            return jsonify({'success': False, 'error': 'Backend error'}), response.status_code
+    
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/supprimer_utilisateur', methods=['POST'])
 def supprimer_utilisateur_route():
@@ -171,27 +183,73 @@ def supprimer_utilisateur_route():
 
 @app.route('/import-utilisateurs', methods=['POST'])
 def import_utilisateurs():
+    print("🔍 Frontend: Réception demande d'import")
+
     if 'file' not in request.files:
-        return jsonify({'error': 'Aucun fichier reçu'}), 400
+        print("❌ Frontend: Aucun fichier dans la requête")
+        return jsonify({'success': False, 'error': 'Aucun fichier reçu'}), 400
 
     file = request.files['file']
+    print(f"📁 Frontend: Fichier reçu - {file.filename}, type: {file.content_type}")
 
     try:
-        # Envoyer au backend
+        # Envoyer au backend avec le bon format
+        files = {
+            'file': (file.filename, file.stream, file.content_type)
+        }
+        
+        print(f"📤 Frontend: Envoi vers backend - {BACKEND_URL}/api/utilisateurs/import-excel")
+        
         response = requests.post(
             f"{BACKEND_URL}/api/utilisateurs/import-excel",
-            files={'file': (file.filename, file.stream, file.mimetype)}
+            files=files,
+            timeout=30  # Timeout de 30 secondes
         )
+        
+        print(f"📥 Frontend: Réponse backend - Status: {response.status_code}")
+        print(f"📥 Frontend: Contenu réponse: {response.text[:500]}...")
 
         # Répercuter la réponse du backend vers le frontend
         if response.status_code == 200:
-            return jsonify(response.json())
+            result = response.json()
+            return jsonify(result)
         else:
-            return jsonify({'error': 'Erreur backend'}), response.status_code
+            try:
+                error_data = response.json()
+                return jsonify(error_data), response.status_code
+            except:
+                return jsonify({
+                    'success': False,
+                    'error': f'Erreur backend (HTTP {response.status_code})',
+                    'response_text': response.text
+                }), response.status_code
+                
+    except requests.exceptions.Timeout:
+        return jsonify({
+            'success': False,
+            'error': 'Timeout lors de la communication avec le backend'
+        }), 500
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'error': 'Impossible de se connecter au backend'
+        }), 500
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Frontend: Erreur inattendue: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-
-
+@app.route('/referentiel')
+def referentiel():
+    competences = get_backend_data('/api/competences')
+    items = get_backend_data('/api/items')
+    
+    # Calculer le total des items
+    total_items = len(items)
+    
+    return render_template('referentiel.html',
+                         competences=competences,
+                         items=items,
+                         total_items=total_items)
+                         
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

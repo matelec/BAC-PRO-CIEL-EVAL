@@ -22,29 +22,29 @@
             <a href="{{ url_for('evaluations') }}" class="btn-primary">Voir</a>
         </div>
         
+        <!-- Dans index.html, section référentiel -->
         <div class="stat-card">
-            <h3>Compétences</h3>
+            <h3>Référentiel</h3>
             <p class="stat-number">9</p>
-            <span class="stat-desc">Référentiel complet</span>
+            <p class="stat-desc">Compétences CIEL</p>
+            <a href="{{ url_for('referentiel') }}" class="btn-primary">Voir le référentiel</a>
         </div>
     </div>
 
     <div class="recent-activity">
-        <h2>Activité récente</h2>
+        <h2>Bilans</h2>
         <div class="activity-list">
             <div class="activity-item">
                 <span class="activity-icon">📝</span>
-                <div class="activity-content">
-                    <strong>Nouvelle évaluation créée</strong>
-                    <span>Projet communication - 15/03/2024</span>
-                </div>
+                 <p class="activity-content"></P>
+                    <h3>Bilans intermédiaires</h3>
+                    <a href="{{ url_for('evaluations') }}" class="btn-primary">Editer</a>
             </div>
             <div class="activity-item">
-                <span class="activity-icon">✅</span>
-                <div class="activity-content">
-                    <strong>Validations effectuées</strong>
-                    <span>5 compétences validées aujourd'hui</span>
-                </div>
+                <span class="activity-icon">📝</span>
+                <p class="activity-content"></P>
+                    <h3>Bilan final</h3>
+                    <a href="{{ url_for('evaluations') }}" class="btn-primary">Editer</a>
             </div>
         </div>
     </div>
