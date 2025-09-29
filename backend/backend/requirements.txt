@@ -1,0 +1,9 @@
+# ===== NOUVEAU CONTENU DE backend/requirements.txt =====
+Flask==2.3.3
+Flask-CORS==4.0.0
+psycopg2-binary==2.9.7
+pandas==1.5.3
+numpy==1.24.3
+python-dotenv==1.0.0
+openpyxl==3.1.2
+xlrd==2.0.1

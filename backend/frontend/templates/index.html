@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - BAC PRO CIEL{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>Gestion des Compétences - BAC PRO CIEL</h1>
+        <p>Application de suivi des évaluations et validations des compétences</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Utilisateurs</h3>
+            <p class="stat-number">{{ utilisateurs|length }}</p>
+            <a href="{{ url_for('utilisateurs') }}" class="btn-primary">Gérer</a>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Évaluations</h3>
+            <p class="stat-number">{{ evaluations|length }}</p>
+            <a href="{{ url_for('evaluations') }}" class="btn-primary">Voir</a>
+        </div>
+        
+        <!-- Dans index.html, section référentiel -->
+        <div class="stat-card">
+            <h3>Référentiel</h3>
+            <p class="stat-number">9</p>
+            <p class="stat-desc">Compétences CIEL</p>
+            <a href="{{ url_for('referentiel') }}" class="btn-primary">Voir le référentiel</a>
+        </div>
+    </div>
+
+    <div class="recent-activity">
+        <h2>Bilans</h2>
+        <div class="activity-list">
+            <div class="activity-item">
+                <span class="activity-icon">📝</span>
+                 <p class="activity-content"></P>
+                    <h3>Bilans intermédiaires</h3>
+                    <a href="{{ url_for('evaluations') }}" class="btn-primary">Editer</a>
+            </div>
+            <div class="activity-item">
+                <span class="activity-icon">📝</span>
+                <p class="activity-content"></P>
+                    <h3>Bilan final</h3>
+                    <a href="{{ url_for('evaluations') }}" class="btn-primary">Editer</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

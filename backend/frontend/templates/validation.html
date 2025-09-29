@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Validation - {{ utilisateur.prenom }} {{ utilisateur.nom }}{% endblock %}
+
+{% block content %}
+<div class="validation-page">
+    <h1>Validation des compétences</h1>
+    <div class="validation-header">
+        <h2>{{ evaluation.module }}</h2>
+        <p><strong>Élève:</strong> {{ utilisateur.prenom }} {{ utilisateur.nom }} ({{ utilisateur.classe }})</p>
+    </div>
+
+    <div class="section-card">
+        <h2>Items à valider</h2>
+        <form method="POST" action="{{ url_for('valider_item') }}" class="validation-form">
+            <input type="hidden" name="utilisateur_id" value="{{ utilisateur.id }}">
+            <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+            
+            <div class="items-validation">
+                {% for item in items %}
+                {% set validation = validations|selectattr('item_id', 'equalto', item.id)|first %}
+                <div class="validation-item">
+                    <div class="item-info">
+                        <div class="item-header">
+                            <span class="competence-badge">{{ item.competence_code }}</span>
+                            <strong>{{ item.code_item }}</strong>
+                        </div>
+                        <p class="item-desc">{{ item.description }}</p>
+                        <p class="item-sub">{{ item.sous_item }}</p>
+                    </div>
+                    
+                    <div class="validation-controls">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        
+                        <div class="niveau-buttons">
+                            <label class="niveau-radio">
+                                <input type="radio" name="niveau_validation" value="0" 
+                                       {% if not validation or validation.niveau_validation == 0 %}checked{% endif %}>
+                                <span class="niveau-dot niveau-0">Non évalué</span>
+                            </label>
+                            <label class="niveau-radio">
+                                <input type="radio" name="niveau_validation" value="1"
+                                       {% if validation and validation.niveau_validation == 1 %}checked{% endif %}>
+                                <span class="niveau-dot niveau-1">Acquis fragile</span>
+                            </label>
+                            <label class="niveau-radio">
+                                <input type="radio" name="niveau_validation" value="2"
+                                       {% if validation and validation.niveau_validation == 2 %}checked{% endif %}>
+                                <span class="niveau-dot niveau-2">Acquis</span>
+                            </label>
+                            <label class="niveau-radio">
+                                <input type="radio" name="niveau_validation" value="3"
+                                       {% if validation and validation.niveau_validation == 3 %}checked{% endif %}>
+                                <span class="niveau-dot niveau-3">Maîtrisé</span>
+                            </label>
+                            <label class="niveau-radio">
+                                <input type="radio" name="niveau_validation" value="4"
+                                       {% if validation and validation.niveau_validation == 4 %}checked{% endif %}>
+                                <span class="niveau-dot niveau-4">Expert</span>
+                            </label>
+                        </div>
+                        
+                        <textarea name="commentaire" placeholder="Commentaire...">{% if validation %}{{ validation.commentaire }}{% endif %}</textarea>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="submit" class="btn-primary">Enregistrer les validations</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
