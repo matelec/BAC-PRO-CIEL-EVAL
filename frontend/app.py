@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import requests
-import os
+import os, sys
 
 app = Flask(__name__)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:5000')
@@ -38,11 +38,14 @@ def evaluations():
 @app.route('/creer-evaluation', methods=['POST'])
 def creer_evaluation():
     data = {
+        'pole': request.form['pole'],
         'module': request.form['module'],
         'contexte': request.form['contexte'],
         'items_ids': [int(id) for id in request.form.getlist('items_ids')]
     }
     
+    print(f"🔍 Création évaluation - Données: {data}", flush=True)  # Debug
+
     try:
         response = requests.post(f"{BACKEND_URL}/api/evaluations", json=data)
         if response.status_code == 201:

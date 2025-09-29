@@ -50,10 +50,12 @@ function initToggleButtons() {
     
     const toggleImportBtn = document.getElementById('toggleImportBtn');
     const toggleAjoutBtn = document.getElementById('toggleAjoutBtn');
+    const toggleAjoutEvalBtn = document.getElementById('toggleAjoutEvalBtn');
     const importSection = document.getElementById('importSection');
     const ajoutSection = document.getElementById('ajoutSection');
+    const ajoutEval = document.getElementById('ajoutEval');
 
-    if (!toggleImportBtn || !toggleAjoutBtn) {
+    if (!toggleImportBtn || !toggleAjoutBtn || !toggleAjoutEvalBtn) {
         console.error('❌ Boutons toggle non trouvés');
         return;
     }
@@ -62,8 +64,10 @@ function initToggleButtons() {
     function hideAllSections() {
         if (importSection) importSection.style.display = 'none';
         if (ajoutSection) ajoutSection.style.display = 'none';
+        if (ajoutEval) ajoutEval.style.display = 'none';
         toggleImportBtn.classList.remove('active');
         toggleAjoutBtn.classList.remove('active');
+        t
     }
 
     // Fonction pour afficher une section
@@ -104,6 +108,18 @@ function initToggleButtons() {
             hideAllSections();
         }
     });
+
+    // Événement bouton Ajout Eval
+    toggleAjoutEvalBtn.addEventListener('click', function() {
+        console.log('🖱️ Clic bouton Ajout manuel');
+        if (!ajoutEval || ajoutEval.style.display === 'none') {
+            showSection(ajoutEval, this);
+        } else {
+            hideAllSections();
+        }
+    });
+
+
 
     console.log('✅ Boutons toggle configurés');
 }

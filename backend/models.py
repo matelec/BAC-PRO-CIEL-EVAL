@@ -367,13 +367,13 @@ class Database:
 
     # ===== MÉTHODES ÉVALUATIONS =====
     
-    def creer_evaluation(self, module, contexte, items_ids):
+    def creer_evaluation(self, pole, module, contexte, items_ids):
         try:
             with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
-                    INSERT INTO evaluations (module, contexte)
-                    VALUES (%s, %s) RETURNING *
-                """, (module, contexte))
+                    INSERT INTO evaluations (pole, module, contexte)
+                    VALUES (%s, %s, %s) RETURNING *
+                """, (pole, module, contexte))
                 
                 evaluation = cursor.fetchone()
                 evaluation_id = evaluation['id']

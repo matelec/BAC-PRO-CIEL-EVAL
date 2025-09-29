@@ -318,7 +318,7 @@ tr:hover {
     justify-content: space-between;
     align-items: center;
     background: var(--light-color);
-    padding: 1.5rem;
+    padding: 0.5rem;
     border-radius: var(--border-radius);
     border-left: 4px solid var(--success-color);
 }
@@ -326,6 +326,7 @@ tr:hover {
 .eval-info h3 {
     color: var(--dark-color);
     margin-bottom: 0.5rem;
+    font-size: 1.2rem;
 }
 
 .eval-info p {
@@ -335,6 +336,7 @@ tr:hover {
 
 .eval-info small {
     color: var(--gray-dark);
+    font-size: x-small;
 }
 
 /* ===== ITEMS ET COMPÉTENCES ===== */

@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from models import Database
-import os
+import os, sys
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -277,14 +277,32 @@ def get_evaluations():
 
 @app.route('/api/evaluations', methods=['POST'])
 def creer_evaluation():
+    print("🎯 ROUTE /api/evaluations APPELÉE !", flush=True)  # Ce print doit absolument apparaître
     try:
         data = request.get_json()
+        print(f"🔍 Création évaluation - Données: {data}")  # Debug
+
+
+         # Vérifier que les champs obligatoires sont présents
+        if not data.get('pole'):
+            return jsonify({"error": "Le pôle est obligatoire"}), 400
+        if not data.get('module'):
+            return jsonify({"error": "Le module est obligatoire"}), 400
+        if not data.get('items_ids'):
+            return jsonify({"error": "Au moins un item est requis"}), 400
+
         evaluation = db.creer_evaluation(
-            data['module'],
-            data.get('contexte', ''),
-            data['items_ids']
+            pole=data['pole'],
+            module=data['module'],
+            contexte=data.get('contexte', ''),
+            items_ids=data['items_ids']
         )
-        return jsonify(dict(evaluation)), 201
+
+        if evaluation:
+            return jsonify(dict(evaluation)), 201
+        else:
+            return jsonify({"error": "Erreur lors de la création de l'évaluation"}), 500
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -314,6 +332,7 @@ def supprimer_evaluation(evaluation_id):
 def mettre_a_jour_validation():
     try:
         data = request.get_json()
+
         validation = db.mettre_a_jour_validation(
             data['utilisateur_id'],
             data['evaluation_id'],

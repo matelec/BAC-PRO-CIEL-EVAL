@@ -41,6 +41,7 @@ CREATE TABLE items (
 -- Table des évaluations
 CREATE TABLE evaluations (
     id SERIAL PRIMARY KEY,
+    pole VARCHAR(50),
     module VARCHAR(100) NOT NULL,
     contexte TEXT,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -162,16 +163,16 @@ INSERT INTO utilisateurs (nom, prenom, email, classe, specialite) VALUES
 ('Moreau', 'Thomas', 'thomas.moreau@bacpro-ciel.fr', 'Terminale', 'BP CIEL');
 
 -- Évaluations d'exemple
-INSERT INTO evaluations (module, contexte, date_creation) VALUES
-('Projet communication professionnelle', 'Évaluation des compétences en communication dans le cadre du projet semestriel - Présentation orale et écrite', NOW()),
-('TP installation réseau', 'Travaux pratiques d''installation et configuration d''un réseau local entreprise', NOW()),
-('Développement application web', 'Projet de développement d''une application web avec base de données', NOW()),
-('Maintenance système', 'Atelier de maintenance préventive et corrective sur parc informatique', NOW());
+INSERT INTO evaluations (pole, module, contexte, date_creation) VALUES
+('Informatique','Projet communication professionnelle', 'Évaluation des compétences en communication dans le cadre du projet semestriel - Présentation orale et écrite', NOW()),
+('Electronique','TP installation réseau', 'Travaux pratiques d''installation et configuration d''un réseau local entreprise', NOW()),
+('Cybersécurité','Développement application web', 'Projet de développement d''une application web avec base de données', NOW()),
+('Informatique','Maintenance système', 'Atelier de maintenance préventive et corrective sur parc informatique', NOW());
 
 -- Lier des items aux évaluations (exemples)
 INSERT INTO evaluation_items (evaluation_id, item_id) VALUES
 -- Évaluation 1 (Communication) - Items C01
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5);
 
 -- Validations d'exemple
 INSERT INTO validations (utilisateur_id, evaluation_id, item_id, niveau_validation, commentaire, validateur) VALUES
