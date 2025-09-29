@@ -1,5 +1,7 @@
+
 -- Suppression des tables si elles existent (pour permettre une réinitialisation complète)
 DROP TABLE IF EXISTS validations CASCADE;
+DROP TABLE IF EXISTS evaluation_attributions CASCADE;
 DROP TABLE IF EXISTS evaluation_items CASCADE;
 DROP TABLE IF EXISTS evaluations CASCADE;
 DROP TABLE IF EXISTS items CASCADE;
@@ -55,6 +57,23 @@ CREATE TABLE evaluation_items (
     UNIQUE(evaluation_id, item_id)
 );
 
+-- Table pour les attributions d'évaluations (par classe ou par utilisateur)
+CREATE TABLE evaluation_attributions (
+    id SERIAL PRIMARY KEY,
+    evaluation_id INTEGER NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
+    classe VARCHAR(50) NULL,
+    utilisateur_id INTEGER NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    date_attribution TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Contrainte pour s'assurer qu'on a soit une classe, soit un utilisateur, mais pas les deux
+    CHECK (
+        (classe IS NOT NULL AND utilisateur_id IS NULL) OR 
+        (classe IS NULL AND utilisateur_id IS NOT NULL)
+    ),
+    -- Contrainte d'unicité pour éviter les doublons
+    UNIQUE(evaluation_id, classe),
+    UNIQUE(evaluation_id, utilisateur_id)
+);
+
 -- Table pour les validations
 CREATE TABLE validations (
     id SERIAL PRIMARY KEY,
@@ -86,7 +105,6 @@ INSERT INTO items (competence_id, code_item, description, sous_item) VALUES
 (1, 'Item1-2', 'Présentation orale de qualité', 'La présentation orale (support et expression) est de qualité et claire'),
 (1, 'Item1-3', 'Argumentation de qualité', 'L''argumentation développée lors de la présentation et de l''échange est de qualité'),
 (1, 'Item1-4', 'Prise en compte des handicaps', 'L''argumentation tient compte des éventuelles situations de handicap des personnes avec lesquelles il interagit');
-
 
 -- Insertion des items pour C03
 INSERT INTO items (competence_id, code_item, description, sous_item) VALUES
@@ -160,19 +178,45 @@ INSERT INTO utilisateurs (nom, prenom, email, classe, specialite) VALUES
 ('Martin', 'Marie', 'marie.martin@bacpro-ciel.fr', 'Première', 'BP CIEL'),
 ('Bernard', 'Pierre', 'pierre.bernard@bacpro-ciel.fr', 'Terminale', 'BP CIEL'),
 ('Dubois', 'Sophie', 'sophie.dubois@bacpro-ciel.fr', 'Première', 'BP CIEL'),
-('Moreau', 'Thomas', 'thomas.moreau@bacpro-ciel.fr', 'Terminale', 'BP CIEL');
+('Moreau', 'Thomas', 'thomas.moreau@bacpro-ciel.fr', 'Terminale', 'BP CIEL'),
+('Petit', 'Laura', 'laura.petit@bacpro-ciel.fr', 'Seconde', 'BP CIEL'),
+('Roux', 'Lucas', 'lucas.roux@bacpro-ciel.fr', 'Seconde', 'BP CIEL'),
+('Garcia', 'Emma', 'emma.garcia@bacpro-ciel.fr', 'Première', 'BP CIEL'),
+('Fournier', 'Hugo', 'hugo.fournier@bacpro-ciel.fr', 'Terminale', 'BP CIEL'),
+('Leroy', 'Chloé', 'chloe.leroy@bacpro-ciel.fr', 'Première', 'BP CIEL');
 
 -- Évaluations d'exemple
 INSERT INTO evaluations (pole, module, contexte, date_creation) VALUES
-('Informatique','Projet communication professionnelle', 'Évaluation des compétences en communication dans le cadre du projet semestriel - Présentation orale et écrite', NOW()),
-('Electronique','TP installation réseau', 'Travaux pratiques d''installation et configuration d''un réseau local entreprise', NOW()),
-('Cybersécurité','Développement application web', 'Projet de développement d''une application web avec base de données', NOW()),
-('Informatique','Maintenance système', 'Atelier de maintenance préventive et corrective sur parc informatique', NOW());
+('Informatique', 'Projet communication professionnelle', 'Évaluation des compétences en communication dans le cadre du projet semestriel - Présentation orale et écrite', NOW()),
+('Electronique', 'TP installation réseau', 'Travaux pratiques d''installation et configuration d''un réseau local entreprise', NOW()),
+('Cybersécurité', 'Développement application web', 'Projet de développement d''une application web avec base de données', NOW()),
+('Informatique', 'Maintenance système', 'Atelier de maintenance préventive et corrective sur parc informatique', NOW()),
+('Communication', 'Présentation orale', 'Évaluation des compétences en présentation orale pour le chef d''œuvre', NOW());
 
 -- Lier des items aux évaluations (exemples)
 INSERT INTO evaluation_items (evaluation_id, item_id) VALUES
 -- Évaluation 1 (Communication) - Items C01
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5);
+(1, 1), (1, 2), (1, 3), (1, 4),
+-- Évaluation 2 (Réseau) - Items C10
+(2, 29), (2, 30), (2, 31), (2, 32),
+-- Évaluation 3 (Développement) - Items C08
+(3, 22), (3, 23), (3, 24), (3, 25), (3, 26),
+-- Évaluation 4 (Maintenance) - Items C11
+(4, 33), (4, 34), (4, 35), (4, 36), (4, 37),
+-- Évaluation 5 (Présentation) - Items C01
+(5, 1), (5, 2), (5, 3);
+
+-- Attributions d'évaluations (par classe et par utilisateur)
+INSERT INTO evaluation_attributions (evaluation_id, classe, utilisateur_id) VALUES
+-- Attribution par classe
+(1, 'Terminale', NULL),  -- Évaluation 1 pour toute la Terminale
+(2, 'Première', NULL),   -- Évaluation 2 pour toute la Première
+(3, 'Seconde', NULL),    -- Évaluation 3 pour toute la Seconde
+-- Attribution par utilisateur spécifique
+(4, NULL, 1),           -- Évaluation 4 pour Jean Dupont uniquement
+(4, NULL, 3),           -- Évaluation 4 pour Pierre Bernard également
+(5, NULL, 2),           -- Évaluation 5 pour Marie Martin uniquement
+(1, NULL, 10);          -- Évaluation 1 aussi pour Chloé Leroy (en plus de sa classe)
 
 -- Validations d'exemple
 INSERT INTO validations (utilisateur_id, evaluation_id, item_id, niveau_validation, commentaire, validateur) VALUES
@@ -181,21 +225,47 @@ INSERT INTO validations (utilisateur_id, evaluation_id, item_id, niveau_validati
 (1, 1, 3, 2, 'Argumentation correcte mais pourrait être plus développée', 'M. Durand'),
 (2, 1, 1, 3, 'Bonne présentation, soignée', 'M. Durand'),
 (2, 1, 2, 3, 'Expression claire, bon support', 'M. Durand'),
-(3, 2, 15, 2, 'Bonne identification des besoins', 'Mme Martin'),
-(3, 2, 16, 3, 'Maîtrise des outils d''analyse', 'Mme Martin'),
-(4, 3, 36, 4, 'Excellente mise en œuvre des environnements', 'M. Lefebvre'),
-(4, 3, 37, 3, 'Débogage efficace', 'M. Lefebvre');
+(3, 2, 29, 2, 'Bonne identification des besoins', 'Mme Martin'),
+(3, 2, 30, 3, 'Maîtrise des outils d''analyse', 'Mme Martin'),
+(4, 3, 22, 4, 'Excellente mise en œuvre des environnements', 'M. Lefebvre'),
+(4, 3, 23, 3, 'Débogage efficace', 'M. Lefebvre'),
+(1, 4, 33, 4, 'Excellente préparation de l''intervention', 'M. Durand'),
+(3, 4, 33, 3, 'Bonne préparation, documentation complète', 'M. Durand');
 
 -- Index pour améliorer les performances
 CREATE INDEX idx_items_competence_id ON items(competence_id);
 CREATE INDEX idx_evaluation_items_evaluation_id ON evaluation_items(evaluation_id);
 CREATE INDEX idx_evaluation_items_item_id ON evaluation_items(item_id);
+CREATE INDEX idx_evaluation_attributions_evaluation_id ON evaluation_attributions(evaluation_id);
+CREATE INDEX idx_evaluation_attributions_classe ON evaluation_attributions(classe);
+CREATE INDEX idx_evaluation_attributions_utilisateur_id ON evaluation_attributions(utilisateur_id);
 CREATE INDEX idx_validations_utilisateur_id ON validations(utilisateur_id);
 CREATE INDEX idx_validations_evaluation_id ON validations(evaluation_id);
 CREATE INDEX idx_validations_item_id ON validations(item_id);
+CREATE INDEX idx_utilisateurs_classe ON utilisateurs(classe);
+
+-- Vue pratique pour récupérer les utilisateurs concernés par une évaluation
+CREATE OR REPLACE VIEW v_utilisateurs_evaluations AS
+SELECT 
+    e.id as evaluation_id,
+    e.module,
+    ea.classe,
+    ea.utilisateur_id,
+    u.id as user_id,
+    u.nom,
+    u.prenom,
+    u.classe as user_classe,
+    u.email
+FROM evaluations e
+LEFT JOIN evaluation_attributions ea ON e.id = ea.evaluation_id
+LEFT JOIN utilisateurs u ON 
+    (ea.classe IS NOT NULL AND u.classe = ea.classe) 
+    OR (ea.utilisateur_id IS NOT NULL AND u.id = ea.utilisateur_id);
 
 -- Message de confirmation
 DO $$ 
 BEGIN
     RAISE NOTICE 'Base de données initialisée avec succès!';
+    RAISE NOTICE 'Table evaluation_attributions créée pour gérer les attributions par classe ou utilisateur';
+    RAISE NOTICE 'Vue v_utilisateurs_evaluations créée pour faciliter les requêtes';
 END $$;

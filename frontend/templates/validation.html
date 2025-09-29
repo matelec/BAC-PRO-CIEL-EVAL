@@ -2,72 +2,152 @@
 
 {% block title %}Validation - {{ utilisateur.prenom }} {{ utilisateur.nom }}{% endblock %}
 
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='validation.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="validation-page">
-    <h1>Validation des compétences</h1>
+    <!-- Bouton de retour -->
+    <div class="page-header">
+        <div class="header-left">
+            <a href="{{ url_for('detail_evaluation', evaluation_id=evaluation.id) }}" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à l'évaluation
+            </a>
+        </div>
+        <div class="header-center">
+            <h1>Validation des compétences</h1>
+        </div>
+        <div class="header-right">
+            <!-- Vous pouvez ajouter d'autres éléments ici si besoin -->
+        </div>
+    </div>
     <div class="validation-header">
         <h2>{{ evaluation.module }}</h2>
-        <p><strong>Élève:</strong> {{ utilisateur.prenom }} {{ utilisateur.nom }} ({{ utilisateur.classe }})</p>
+        <strong>Élève:</strong> {{ utilisateur.prenom }} {{ utilisateur.nom }} ({{ utilisateur.classe }})
+        <p><strong>Date:</strong> {{ evaluation.date_evaluation | datetimeformat('%d %B %Y') or 'Non définie' }}
     </div>
 
+    <!-- Section Items à valider -->
     <div class="section-card">
-        <h2>Items à valider</h2>
-        <form method="POST" action="{{ url_for('valider_item') }}" class="validation-form">
-            <input type="hidden" name="utilisateur_id" value="{{ utilisateur.id }}">
-            <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
-            
-            <div class="items-validation">
-                {% for item in items %}
-                {% set validation = validations|selectattr('item_id', 'equalto', item.id)|first %}
-                <div class="validation-item">
-                    <div class="item-info">
-                        <div class="item-header">
-                            <span class="competence-badge">{{ item.competence_code }}</span>
-                            <strong>{{ item.code_item }}</strong>
-                        </div>
-                        <p class="item-desc">{{ item.description }}</p>
-                        <p class="item-sub">{{ item.sous_item }}</p>
+        <div class="card-header">
+            <h2><i class="fas fa-tasks"></i> Items à valider ({{ items|length }})</h2>
+            <button class="btn-primary" id="saveAllValidations">
+                <i class="fas fa-save"></i> Enregistrer toutes les validations
+            </button>
+        </div>
+        <div class="card-body">
+            {% if items %}
+            <form id="globalValidationForm">
+                <input type="hidden" name="utilisateur_id" value="{{ utilisateur.id }}">
+                <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+                
+                <div class="validation-items">
+                    {% for item in items %}
+                    {% set validation = validations|selectattr('item_id', 'equalto', item.id)|first %}
+                    <div class="validation-item" data-item-id="{{ item.id }}">
+                        <table class="validation-table">
+                            <tr>
+                                <!-- Colonne 1 : Compétence et Statut -->
+                                <td class="competence-cell">
+                                    <div class="competence-info">
+                                        <span class="competence-badge">{{ item.competence_code }}</span>
+                                        <h3 class="item-title">{{ item.code_item }}</h3>
+                                        {% if item.description %}
+                                        <p class="item-description">{{ item.description }}</p>
+                                        {% endif %}
+                                        
+                                        <!-- Badge de statut global -->
+                                        <div class="validation-status">
+                                            {% if validation %}
+                                            <span class="status-badge status-{{ validation.niveau_validation }}">
+                                                {% if validation.niveau_validation == 1 %}🟥 Non Acquis
+                                                {% elif validation.niveau_validation == 2 %}🟧 En Cours
+                                                {% elif validation.niveau_validation == 3 %}🟩 Acquis
+                                                {% elif validation.niveau_validation == 4 %}✅ Expert
+                                                {% endif %}
+                                            </span>
+                                            {% else %}
+                                            <span class="status-badge status-0">⏳ Non validé</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Colonne 2 : Sous-item et Actions -->
+                                <td class="actions-cell">
+                                    <div class="sub-item-content">
+                                        {% if item.sous_item %}
+                                        <div class="sub-item-header">
+                                            <h4>Sous-item à valider :</h4>
+                                            <p class="sub-item-text">{{ item.sous_item }}</p>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Boutons de validation -->
+                                        <div class="validation-actions">
+                                            <div class="validation-buttons">
+                                                <button type="button" class="btn-validation btn-na {% if validation and validation.niveau_validation == 1 %}active{% endif %}" 
+                                                        data-niveau="1" title="Non Acquis">
+                                                    <span class="btn-emoji">🟥</span>
+                                                    <span class="btn-text">Non Acquis</span>
+                                                </button>
+                                                
+                                                <button type="button" class="btn-validation btn-ec {% if validation and validation.niveau_validation == 2 %}active{% endif %}" 
+                                                        data-niveau="2" title="En Cours">
+                                                    <span class="btn-emoji">🟧</span>
+                                                    <span class="btn-text">En Cours</span>
+                                                </button>
+                                                
+                                                <button type="button" class="btn-validation btn-acquis {% if validation and validation.niveau_validation == 3 %}active{% endif %}" 
+                                                        data-niveau="3" title="Acquis">
+                                                    <span class="btn-emoji">🟩</span>
+                                                    <span class="btn-text">Acquis</span>
+                                                </button>
+                                                
+                                                <button type="button" class="btn-validation btn-expert {% if validation and validation.niveau_validation == 4 %}active{% endif %}" 
+                                                        data-niveau="4" title="Expert">
+                                                    <span class="btn-emoji">✅</span>
+                                                    <span class="btn-text">Expert</span>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Commentaire -->
+                                            <!--<div class="comment-section">
+                                                <label for="commentaire_{{ item.id }}">Commentaire :</label>
+                                                <textarea name="commentaire_{{ item.id }}" 
+                                                          id="commentaire_{{ item.id }}"
+                                                          placeholder="Commentaire pour cet item (optionnel)..."
+                                                          class="comment-input">{% if validation %}{{ validation.commentaire }}{% endif %}</textarea>
+                                            </div>-->
+                                            
+                                            <!-- Champ caché pour le niveau de validation -->
+                                            <input type="hidden" name="niveau_{{ item.id }}" 
+                                                   value="{% if validation %}{{ validation.niveau_validation }}{% else %}0{% endif %}">
+                                        </div>
+                                        
+                                        <!-- Commentaire existant affiché -->
+                                        {% if validation and validation.commentaire %}
+                                        <div class="existing-comment">
+                                            <strong>Commentaire existant :</strong>
+                                            <p class="comment-text">{{ validation.commentaire }}</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
-                    
-                    <div class="validation-controls">
-                        <input type="hidden" name="item_id" value="{{ item.id }}">
-                        
-                        <div class="niveau-buttons">
-                            <label class="niveau-radio">
-                                <input type="radio" name="niveau_validation" value="0" 
-                                       {% if not validation or validation.niveau_validation == 0 %}checked{% endif %}>
-                                <span class="niveau-dot niveau-0">Non évalué</span>
-                            </label>
-                            <label class="niveau-radio">
-                                <input type="radio" name="niveau_validation" value="1"
-                                       {% if validation and validation.niveau_validation == 1 %}checked{% endif %}>
-                                <span class="niveau-dot niveau-1">Acquis fragile</span>
-                            </label>
-                            <label class="niveau-radio">
-                                <input type="radio" name="niveau_validation" value="2"
-                                       {% if validation and validation.niveau_validation == 2 %}checked{% endif %}>
-                                <span class="niveau-dot niveau-2">Acquis</span>
-                            </label>
-                            <label class="niveau-radio">
-                                <input type="radio" name="niveau_validation" value="3"
-                                       {% if validation and validation.niveau_validation == 3 %}checked{% endif %}>
-                                <span class="niveau-dot niveau-3">Maîtrisé</span>
-                            </label>
-                            <label class="niveau-radio">
-                                <input type="radio" name="niveau_validation" value="4"
-                                       {% if validation and validation.niveau_validation == 4 %}checked{% endif %}>
-                                <span class="niveau-dot niveau-4">Expert</span>
-                            </label>
-                        </div>
-                        
-                        <textarea name="commentaire" placeholder="Commentaire...">{% if validation %}{{ validation.commentaire }}{% endif %}</textarea>
-                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
+            </form>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>Aucun item à valider pour cette évaluation</p>
             </div>
-            
-            <button type="submit" class="btn-primary">Enregistrer les validations</button>
-        </form>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

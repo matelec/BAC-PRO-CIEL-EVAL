@@ -81,6 +81,13 @@ class BacProCielApp {
                 this.closeModal(e.target.closest('.modal'));
             });
         });
+
+        // Fermeture avec les boutons .modal-close (boutons "Annuler")
+        document.querySelectorAll('.modal-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                this.closeModal(e.target.closest('.modal'));
+            });
+        });
         
         // Fermeture en cliquant à l'extérieur
         window.addEventListener('click', (e) => {

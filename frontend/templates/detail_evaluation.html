@@ -2,59 +2,384 @@
 
 {% block title %}{{ evaluation.module }} - Détail{% endblock %}
 
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='detail_evaluations.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="evaluation-detail">
-    <h1>{{ evaluation.module }}</h1>
-    <p class="eval-contexte">{{ evaluation.contexte }}</p>
-    
-    <div class="section-card">
-        <h2>Items évalués ({{ items|length }})</h2>
-        <div class="items-grid">
-            {% for item in items %}
-            <div class="item-card">
-                <div class="item-header">
-                    <span class="competence-badge">{{ item.competence_code }}</span>
-                    <strong>{{ item.code_item }}</strong>
-                </div>
-                <p class="item-desc">{{ item.description }}</p>
-                <p class="item-sub">{{ item.sous_item[:100] }}...</p>
-            </div>
-            {% endfor %}
+    <!-- En-tête avec actions principales -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1><i class="fas fa-clipboard-check"></i> {{ evaluation.pole }}</h1>
+            <h2><i class="fas fa-clipboard-list"></i> {{ evaluation.module }}</h2>
+            <p class="eval-small">{{ evaluation.contexte }}</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Retour
+            </button>
+            <button class="btn-warning" id="editEvalBtn" data-eval-id="{{ evaluation.id }}">
+                <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button class="btn-danger" id="deleteEvalBtn" data-eval-id="{{ evaluation.id }}" 
+                    data-eval-name="{{ evaluation.module }}">
+                <i class="fas fa-trash"></i> Supprimer
+            </button>
         </div>
     </div>
 
+    <!-- Section Attribution -->
     <div class="section-card">
-        <h2>Validations par utilisateur</h2>
-        <div class="validations-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Utilisateur</th>
-                        <th>Classe</th>
-                        <th>Items validés</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in utilisateurs %}
-                    <tr>
-                        <td>{{ user.prenom }} {{ user.nom }}</td>
-                        <td>{{ user.classe }}</td>
-                        <td>
-                            {% set user_validations = validations|selectattr('utilisateur_id', 'equalto', user.id)|list %}
-                            {{ user_validations|length }}/{{ items|length }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('page_validation', evaluation_id=evaluation.id, utilisateur_id=user.id) }}" 
-                               class="btn-primary">
-                                Valider
-                            </a>
-                        </td>
-                    </tr>
+        <div class="card-header">
+            <h2><i class="fas fa-users-cog"></i> Attribution de l'évaluation</h2>
+            <button class="btn-primary" id="toggleAttributionBtn">
+                <i class="fas fa-plus"></i> Attribuer
+            </button>
+        </div>
+        <div class="card-body">
+            <!-- Formulaire d'attribution (caché par défaut) -->
+            <div id="attributionSection" style="display: none;">
+                <form id="attributionForm">
+                    <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+                    
+                    <div class="form-group">
+                        <label>Type d'attribution</label>
+                        <div class="radio-group">
+                            <label>
+                                Par classe
+                                <input type="radio" name="type_attribution" value="classe" checked>
+                            </label>
+                            <label>
+                                Par utilisateur
+                                <input type="radio" name="type_attribution" value="utilisateur">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Attribution par classe -->
+                    <div id="attributionClasse" class="form-group">
+                        <label for="classe_select"><i class="fas fa-graduation-cap"></i> Classe</label>
+                        <select id="classe_select" name="classe" required>
+                            <option value="">Sélectionner une classe</option>
+                            <option value="Seconde">Seconde</option>
+                            <option value="Première">Première</option>
+                            <option value="Terminale">Terminale</option>
+                        </select>
+                    </div>
+
+                    <!-- Attribution par utilisateur -->
+                    <div id="attributionUtilisateur" class="form-group" style="display: none;">
+                        <label for="user_select"><i class="fas fa-user"></i> Utilisateur</label>
+                        <select id="user_select" name="utilisateur_id">
+                            <option value="">Sélectionner un utilisateur</option>
+                            {% for user in tous_utilisateurs %}
+                            <option value="{{ user.id }}">{{ user.prenom }} {{ user.nom }} ({{ user.classe }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-check"></i> Attribuer
+                        </button>
+                        <button type="button" class="btn-secondary" id="cancelAttributionBtn">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Liste des attributions actuelles -->
+            <div class="attributions-list">
+                <h3>Attributions actuelles</h3>
+                {% if attributions %}
+                <div class="attributions-grid">
+                    {% for attr in attributions %}
+                    <div class="attribution-card">
+                        <div class="attribution-info">
+                            {% if attr.classe %}
+                            <i class="fas fa-graduation-cap"></i>
+                            <strong>Classe : {{ attr.classe }}</strong>
+                            {% else %}
+                            <i class="fas fa-user"></i>
+                            <strong>{{ attr.prenom }} {{ attr.nom }}</strong>
+                            <small>({{ attr.user_classe }})</small>
+                            {% endif %}
+                        </div>
+                        <button class="btn-icon btn-danger remove-attribution-btn" 
+                                data-attribution-id="{{ attr.id }}"
+                                title="Retirer">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Aucune attribution pour le moment</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Items évalués -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-tasks"></i> Items évalués ({{ items|length }})</h2>
+            <button class="btn-primary" id="addItemsBtn">
+                <i class="fas fa-plus"></i> Ajouter des items
+            </button>
+        </div>
+        <div class="card-body">
+            {% if items %}
+            <div class="items-grid">
+                {% for item in items %}
+                <div class="item-card" data-item-id="{{ item.id }}">
+                    <div class="item-header">
+                        <div>
+                            <span class="competence-badge">{{ item.competence_code }}</span>
+                            <strong>{{ item.code_item }}</strong>
+                        </div>
+                        <button class="btn-icon btn-danger remove-item-btn" data-item-id="{{ item.id }}" title="Retirer l'item">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <p class="item-desc">{{ item.description }}</p>
+                    <p class="item-sub">{{ item.sous_item[:100] }}{% if item.sous_item|length > 100 %}...{% endif %}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Aucun item associé à cette évaluation</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section Validations -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-check-circle"></i> Validations par utilisateur ({{ utilisateurs|length }})</h2>
+        </div>
+        <div class="card-body">
+            {% if utilisateurs %}
+            <div class="table-responsive">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Classe</th>
+                            <th>Items validés</th>
+                            <th>Progression</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in utilisateurs %}
+                        <tr>
+                            <td>
+                                <div class="user-name">
+                                    <strong>{{ user.prenom }} {{ user.nom }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-classe">{{ user.classe }}</span>
+                            </td>
+                            <td>
+                                {% set user_validations = validations|selectattr('utilisateur_id', 'equalto', user.id)|list %}
+                                <span class="validation-count">{{ user_validations|length }}/{{ items|length }}</span>
+                            </td>
+                            <td>
+                                {% set progress = (user_validations|length / items|length * 100)|int if items|length > 0 else 0 %}
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ progress }}%"></div>
+                                </div>
+                                <span class="progress-text">{{ progress }}%</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('page_validation', evaluation_id=evaluation.id, utilisateur_id=user.id) }}" 
+                                   class="btn-primary btn-sm">
+                                    <i class="fas fa-clipboard-check"></i> Valider
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Aucun utilisateur attribué à cette évaluation</p>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Modal : Ajouter des items -->
+<div id="addItemModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3><i class="fas fa-plus-circle"></i> Ajouter des items à l'évaluation</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addItemForm">
+                <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+                
+                <!-- Filtres -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Filtrer par compétence</label>
+                        <select id="filterCompetence">
+                            <option value="">Toutes les compétences</option>
+                            {% for competence in competences %}
+                            <option value="{{ competence.code }}">{{ competence.code }} - {{ competence.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rechercher</label>
+                        <input type="text" id="searchItem" placeholder="Rechercher un item...">
+                    </div>
+                </div>
+
+                <!-- Indicateur d'items disponibles -->
+                <div id="itemsCounter" class="items-counter">
+                    <span id="availableCount">0</span> item(s) disponible(s)
+                </div>
+
+               <!-- Liste des items disponibles -->
+                <div class="items-selection">
+                    <h4>Sélectionner les items à ajouter</h4>
+                    <div id="itemsCheckboxList" class="checkbox-list">
+                        {% for item in tous_items %}
+                        {% if item.id not in items|map(attribute='id')|list %}
+                        <label class="checkbox-item" data-competence="{{ item.competence_code }}">
+                            <input type="checkbox" name="items[]" value="{{ item.id }}">
+                            <div class="checkbox-content">
+                                <span class="competence-badge">{{ item.competence_code }}</span>
+                                <strong>{{ item.code_item }}</strong>
+                                <p>{{ item.description }}</p>
+                                <small class="text-muted">{{ item.sous_item }}</small>
+                            </div>
+                        </label>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                
+                
+                <!-- Message si aucun item disponible -->
+                    <div id="noItemsMessage" class="no-items-message" style="display: none;">
+                        <p><i class="fas fa-info-circle"></i> Tous les items disponibles sont déjà associés à cette évaluation.</p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-check"></i> Ajouter les items sélectionnés
+                    </button>
+                    <button type="button" class="btn-secondary modal-close">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal : Modifier l'évaluation -->
+<div id="editEvalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modifier l'évaluation</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editEvalForm">
+                <input type="hidden" name="evaluation_id" value="{{ evaluation.id }}">
+                
+                <div class="form-group">
+                    <label for="edit_pole">Pôle *</label>
+                    <input type="text" id="edit_pole" name="pole" value="{{ evaluation.pole }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_module">Module *</label>
+                    <input type="text" id="edit_module" name="module" value="{{ evaluation.module }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_contexte">Contexte</label>
+                    <textarea id="edit_contexte" name="contexte" rows="4">{{ evaluation.contexte }}</textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                    <button type="button" class="btn-secondary modal-close">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal : Confirmer suppression évaluation -->
+<div id="deleteEvalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmer la suppression</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="delete-confirmation">
+                <div class="warning-icon">
+                    <i class="fas fa-trash-alt fa-3x"></i>
+                </div>
+                <p id="deleteEvalText">Êtes-vous sûr de vouloir supprimer l'évaluation "{{ evaluation.module }}" ?</p>
+                <div class="warning-text">
+                    <small><i class="fas fa-info-circle"></i> Cette action supprimera également toutes les validations associées.</small>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button id="confirmDeleteEvalBtn" class="btn-danger">
+                    <i class="fas fa-trash"></i> Confirmer la suppression
+                </button>
+                <button class="btn-secondary modal-close">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal : Confirmer suppression item -->
+<div id="deleteItemModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Retirer l'item</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="delete-confirmation">
+                <div class="warning-icon">
+                    <i class="fas fa-times-circle fa-3x"></i>
+                </div>
+                <p id="deleteItemText">Êtes-vous sûr de vouloir retirer cet item de l'évaluation ?</p>
+                <div class="warning-text">
+                    <small><i class="fas fa-info-circle"></i> Cette action supprimera également toutes les validations associées à cet item.</small>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button id="confirmDeleteItemBtn" class="btn-danger">
+                    <i class="fas fa-times"></i> Confirmer
+                </button>
+                <button class="btn-secondary modal-close">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -1,9 +1,39 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import requests
+from datetime import datetime
 import os, sys
 
 app = Flask(__name__)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:5000')
+
+# === FILTRE JINJA2 POUR LE FORMATAGE DES DATES ===
+@app.template_filter('datetimeformat')
+def datetimeformat(value, format='%d/%m/%Y'):
+    """
+    Filtre Jinja2 pour formater les dates dans les templates
+    """
+    if value is None:
+        return "Non définie"
+    
+    # Si c'est déjà un objet datetime
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    
+    # Si c'est une string, essayer de la parser
+    try:
+        # Essayer différents formats de date
+        for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y', '%d/%m/%Y %H:%M:%S']:
+            try:
+                if isinstance(value, str):
+                    date_obj = datetime.strptime(value, fmt)
+                    return date_obj.strftime(format)
+            except ValueError:
+                continue
+    except Exception as e:
+        print(f"Erreur formatage date: {e}")
+    
+    # Si on ne peut pas parser, retourner la valeur originale
+    return str(value) if value else "Non définie"
 
 def get_backend_data(endpoint):
     try:
@@ -57,15 +87,47 @@ def creer_evaluation():
 
 @app.route('/evaluation/<int:evaluation_id>')
 def detail_evaluation(evaluation_id):
-    evaluation_data = get_backend_data(f'/api/evaluations/{evaluation_id}')
-    validations = get_backend_data(f'/api/evaluations/{evaluation_id}/validations')
-    utilisateurs = get_backend_data('/api/utilisateurs')
+    print(f"🔍 DETAIL EVALUATION - ID: {evaluation_id}")
     
+    evaluation_data = get_backend_data(f'/api/evaluations/{evaluation_id}')
+    
+    # Récupérer les attributions
+    attributions = get_backend_data(f'/api/evaluations/{evaluation_id}/attributions')
+    print(f"🔍 Attributions récupérées: {len(attributions)}")
+    
+    # Récupérer les utilisateurs CONCERNÉS par cette évaluation
+    utilisateurs_concernes = get_backend_data(f'/api/evaluations/{evaluation_id}/utilisateurs-concernes')
+    print(f"🔍 Utilisateurs concernés: {len(utilisateurs_concernes)}")
+    
+    # Récupérer tous les utilisateurs (pour le formulaire d'attribution)
+    tous_utilisateurs = get_backend_data('/api/utilisateurs')
+    
+    validations = get_backend_data(f'/api/evaluations/{evaluation_id}/validations')
+    
+    # Récupérer tous les items disponibles
+    tous_items = get_backend_data('/api/items')
+    
+    # Récupérer les compétences depuis le backend
+    competences = get_backend_data('/api/competences')
+    print(f"🔍 Compétences récupérées: {len(competences)}")
+
     return render_template('detail_evaluation.html',
                          evaluation=evaluation_data.get('evaluation', {}),
                          items=evaluation_data.get('items', []),
+                         attributions=attributions,
+                         utilisateurs=utilisateurs_concernes,  # ← Seulement les concernés
+                         tous_utilisateurs=tous_utilisateurs,  # ← Tous pour le formulaire
+                         tous_items=tous_items,
                          validations=validations,
-                         utilisateurs=utilisateurs)
+                         competences=competences)
+
+@app.route('/api/evaluations/<int:evaluation_id>/utilisateurs-concernes')
+def get_utilisateurs_concernes(evaluation_id):
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/evaluations/{evaluation_id}/utilisateurs-concernes")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/valider/<int:evaluation_id>/<int:utilisateur_id>')
 def page_validation(evaluation_id, utilisateur_id):
@@ -78,6 +140,16 @@ def page_validation(evaluation_id, utilisateur_id):
                          items=evaluation_data.get('items', []),
                          utilisateur=utilisateur,
                          validations=validations)
+
+@app.route('/api/valider-multiple', methods=['POST'])
+def valider_multiples():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/valider-multiple", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/valider-item', methods=['POST'])
 def valider_item():
@@ -253,6 +325,70 @@ def referentiel():
                          competences=competences,
                          items=items,
                          total_items=total_items)
-                         
+
+# Routes proxy pour les attributions
+@app.route('/api/attribuer-evaluation', methods=['POST'])
+def proxy_attribuer_evaluation():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/attribuer-evaluation", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+        
+@app.route('/api/retirer-attribution', methods=['POST'])
+def retirer_attribution():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/retirer-attribution", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/modifier-evaluation', methods=['POST'])
+def modifier_evaluation():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/modifier-evaluation", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/supprimer-evaluation', methods=['POST'])
+def supprimer_evaluation():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/supprimer-evaluation", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/evaluations/<int:evaluation_id>/attributions')
+def get_attributions_evaluation(evaluation_id):
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/evaluations/{evaluation_id}/attributions")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ajouter-items-evaluation', methods=['POST'])
+def ajouter_items_evaluation():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/ajouter-items-evaluation", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/retirer-item-evaluation', methods=['POST'])
+def retirer_item_evaluation():
+    data = request.get_json()
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/retirer-item-evaluation", json=data)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

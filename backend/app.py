@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from models import Database
-import os, sys
+import os, sys, json
+from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -18,7 +19,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = Database()
-
+    
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -361,6 +362,310 @@ def get_validations_evaluation(evaluation_id):
         return jsonify([dict(v) for v in validations])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ===== ROUTES ATTRIBUTIONS ET GESTION ÉVALUATIONS =====
+
+@app.route('/api/attribuer-evaluation', methods=['POST'])
+def api_attribuer_evaluation():
+    try:
+        data = request.get_json()
+        result = db.attribuer_evaluation(
+            evaluation_id=data.get('evaluation_id'),
+            classe=data.get('classe'),
+            utilisateur_id=data.get('utilisateur_id')
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/retirer-attribution', methods=['POST'])
+def api_retirer_attribution():
+    try:
+        data = request.get_json()
+        result = db.retirer_attribution(data.get('attribution_id'))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/modifier-evaluation', methods=['POST'])
+def api_modifier_evaluation():
+    try:
+        data = request.get_json()
+        result = db.modifier_evaluation(
+            evaluation_id=data.get('evaluation_id'),
+            module=data.get('module'),
+            contexte=data.get('contexte')
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/supprimer-evaluation', methods=['POST'])
+def api_supprimer_evaluation():
+    try:
+        data = request.get_json()
+        success = db.supprimer_evaluation(data.get('evaluation_id'))
+        return jsonify({'success': success})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/evaluations/<int:evaluation_id>/attributions', methods=['GET'])
+def get_attributions_evaluation(evaluation_id):
+    try:
+        print(f"🔍 Récupération attributions pour évaluation {evaluation_id}")
+        attributions = db.get_attributions_evaluation(evaluation_id)
+        print(f"✅ {len(attributions)} attributions trouvées")
+        
+
+        # Debug: afficher les données
+        for attr in attributions:
+            print(f"   - ID: {attr['id']}, Classe: {attr['classe']}, User: {attr['utilisateur_id']}, Nom: {attr.get('nom')}, Prénom: {attr.get('prenom')}")
+    
+        return jsonify([dict(a) for a in attributions])
+        
+    except Exception as e:
+        print(f"❌ Erreur récupération attributions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/evaluations/<int:evaluation_id>/utilisateurs-concernes', methods=['GET'])
+def get_utilisateurs_concernes(evaluation_id):
+    try:
+        print(f"🔍 Backend: Récupération utilisateurs concernés pour évaluation {evaluation_id}")
+        utilisateurs = db.get_utilisateurs_concernes_par_evaluation(evaluation_id)
+        print(f"✅ Backend: {len(utilisateurs)} utilisateurs concernés trouvés")
+        return jsonify([dict(u) for u in utilisateurs])
+    except Exception as e:
+        print(f"❌ Erreur récupération utilisateurs concernés: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Routes pour la gestion des items d'évaluation
+@app.route('/api/ajouter-items-evaluation', methods=['POST'])
+def ajouter_items_evaluation():
+    data = request.get_json()
+    try:
+        print(f"🔍 AJOUT ITEMS - Données: {data}")
+        
+        evaluation_id = data.get('evaluation_id')
+        items_ids = data.get('items_ids', [])
+        
+        if not evaluation_id or not items_ids:
+            return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+        
+        # Utiliser directement la méthode de la Database
+        result = db.ajouter_items_evaluation(evaluation_id, items_ids)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"💥 Erreur ajout items: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/retirer-item-evaluation', methods=['POST'])
+def retirer_item_evaluation():
+    data = request.get_json()
+    try:
+        print(f"🔍 RETRAIT ITEM - Données: {data}")
+        
+        evaluation_id = data.get('evaluation_id')
+        item_id = data.get('item_id')
+        
+        if not evaluation_id or not item_id:
+            return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+        
+        # Utiliser directement la méthode de la Database
+        result = db.retirer_item_evaluation(evaluation_id, item_id)
+        return jsonify(result)
+            
+    except Exception as e:
+        print(f"💥 Erreur retrait item: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/valider-multiple', methods=['POST'])
+def valider_multiple():
+    """
+    Route pour enregistrer plusieurs validations en une seule fois
+    """
+    try:
+        print("🔵 Début valider-multiple")
+        
+        # Vérifier que les données JSON sont présentes
+        if not request.is_json:
+            print("❌ Content-Type n'est pas application/json")
+            return jsonify({'success': False, 'error': 'Content-Type must be application/json'}), 400
+            
+        data = request.get_json()
+        print(f"📥 Données JSON reçues: {data}")
+        
+        # Validation des données requises
+        if not data:
+            print("❌ Données JSON vides")
+            return jsonify({'success': False, 'error': 'Données JSON manquantes'}), 400
+        
+        utilisateur_id = data.get('utilisateur_id')
+        evaluation_id = data.get('evaluation_id')
+        validations = data.get('validations', [])
+        
+        print(f"📊 Extraction - utilisateur_id: {utilisateur_id}, evaluation_id: {evaluation_id}, validations: {len(validations)}")
+        
+        if not utilisateur_id:
+            return jsonify({'success': False, 'error': 'utilisateur_id est requis'}), 400
+        
+        if not evaluation_id:
+            return jsonify({'success': False, 'error': 'evaluation_id est requis'}), 400
+        
+        if not validations or not isinstance(validations, list):
+            return jsonify({'success': False, 'error': 'Liste de validations invalide'}), 400
+        
+        # Initialiser la base de données
+        try:
+            db = Database()
+            print("✅ Connexion DB réussie")
+        except Exception as e:
+            print(f"❌ Erreur connexion DB: {str(e)}")
+            return jsonify({'success': False, 'error': f'Erreur base de données: {str(e)}'}), 500
+        
+        # Vérifier que l'utilisateur et l'évaluation existent
+        try:
+            utilisateur = db.get_utilisateur_par_id(utilisateur_id)
+            if not utilisateur:
+                print(f"❌ Utilisateur {utilisateur_id} non trouvé")
+                return jsonify({'success': False, 'error': f'Utilisateur {utilisateur_id} non trouvé'}), 404
+            
+            evaluation, _ = db.get_evaluation_detail(evaluation_id)
+            if not evaluation:
+                print(f"❌ Évaluation {evaluation_id} non trouvée")
+                return jsonify({'success': False, 'error': f'Évaluation {evaluation_id} non trouvée'}), 404
+                
+            print("✅ Utilisateur et évaluation validés")
+        except Exception as e:
+            print(f"❌ Erreur vérification utilisateur/évaluation: {str(e)}")
+            return jsonify({'success': False, 'error': f'Erreur vérification: {str(e)}'}), 500
+        
+        results = {
+            'success': True,
+            'message': f'{len(validations)} validation(s) traité(s)',
+            'details': {
+                'created': 0,
+                'updated': 0,
+                'errors': []
+            }
+        }
+        
+        # Traiter chaque validation
+        for i, validation_data in enumerate(validations):
+            try:
+                item_id = validation_data.get('item_id')
+                niveau_validation = validation_data.get('niveau_validation')
+                commentaire = validation_data.get('commentaire', '').strip()
+                
+                print(f"  📋 Traitement item {i+1}: id={item_id}, niveau={niveau_validation}")
+                
+                # Validation des données de l'item
+                if item_id is None:
+                    error_msg = f'item_id manquant pour la validation {i+1}'
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+                if niveau_validation is None:
+                    error_msg = f'niveau_validation manquant pour item {item_id}'
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+                # Vérifier que l'item existe
+                try:
+                    all_items = db.get_all_items()
+                    item_exists = any(item['id'] == item_id for item in all_items)
+                    if not item_exists:
+                        error_msg = f'Item {item_id} non trouvé'
+                        results['details']['errors'].append(error_msg)
+                        print(f"    ❌ {error_msg}")
+                        continue
+                except Exception as e:
+                    error_msg = f'Erreur vérification item {item_id}: {str(e)}'
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+                # Vérifier que le niveau est valide
+                if niveau_validation not in [0, 1, 2, 3, 4]:
+                    error_msg = f'Niveau invalide {niveau_validation} pour item {item_id}'
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+                # Vérifier si une validation existe déjà
+                try:
+                    validations_existantes = db.get_validations_utilisateur(utilisateur_id, evaluation_id)
+                    validation_existante = next(
+                        (v for v in validations_existantes if v['item_id'] == item_id), 
+                        None
+                    )
+                except Exception as e:
+                    error_msg = f'Erreur vérification validation existante: {str(e)}'
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+                # Utiliser l'email de l'enseignant connecté comme validateur
+                validateur = "enseignant@bacpro-ciel.fr"  # À adapter avec votre auth
+                
+                # Appeler la méthode de mise à jour
+                try:
+                    validation_result = db.mettre_a_jour_validation(
+                        utilisateur_id=utilisateur_id,
+                        evaluation_id=evaluation_id,
+                        item_id=item_id,
+                        niveau=niveau_validation,
+                        commentaire=commentaire,
+                        validateur=validateur
+                    )
+                    
+                    if validation_result:
+                        if validation_existante:
+                            results['details']['updated'] += 1
+                            print(f"    ✅ Mise à jour - Item {item_id}, Niveau {niveau_validation}")
+                        else:
+                            results['details']['created'] += 1
+                            print(f"    ✅ Création - Item {item_id}, Niveau {niveau_validation}")
+                    else:
+                        error_msg = f"Échec opération base de données pour item {item_id}"
+                        results['details']['errors'].append(error_msg)
+                        print(f"    ❌ {error_msg}")
+                        
+                except Exception as e:
+                    error_msg = f"Erreur DB item {item_id}: {str(e)}"
+                    results['details']['errors'].append(error_msg)
+                    print(f"    ❌ {error_msg}")
+                    continue
+                
+            except Exception as e:
+                error_msg = f"Erreur générale item {item_id}: {str(e)}"
+                results['details']['errors'].append(error_msg)
+                print(f"    ❌ {error_msg}")
+                import traceback
+                print(traceback.format_exc())
+                continue
+        
+        # Log de synthèse
+        print(f"🎯 Validations terminées - Créées: {results['details']['created']}, Mises à jour: {results['details']['updated']}, Erreurs: {len(results['details']['errors'])}")
+        
+        # Retourner la réponse
+        response = jsonify(results)
+        print(f"📤 Envoi réponse: {results}")
+        return response
+        
+    except Exception as e:
+        error_msg = f"Erreur globale: {str(e)}"
+        print(f"❌ {error_msg}")
+        import traceback
+        print(traceback.format_exc())
+        
+        # Retourner une erreur JSON valide
+        return jsonify({
+            'success': False, 
+            'error': error_msg
+        }), 500
 
 if __name__ == '__main__':
     print("🚀 Démarrage de l'API Bac Pro CIEL - Backend corrigé")

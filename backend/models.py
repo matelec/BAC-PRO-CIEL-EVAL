@@ -438,6 +438,163 @@ class Database:
             self.connection.rollback()
             return False
 
+# ===== MÉTHODES ATTRIBUTIONS =====
+    
+    def attribuer_evaluation(self, evaluation_id, classe=None, utilisateur_id=None):
+        """
+        Attribue une évaluation à une classe ou à un utilisateur spécifique
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Vérifier que l'évaluation existe
+                cursor.execute("SELECT id FROM evaluations WHERE id = %s", (evaluation_id,))
+                if not cursor.fetchone():
+                    return {'success': False, 'error': 'Évaluation non trouvée'}
+                
+                # Vérifier que soit classe, soit utilisateur_id est fourni
+                if not classe and not utilisateur_id:
+                    return {'success': False, 'error': 'Spécifiez une classe ou un utilisateur'}
+                
+                if classe and utilisateur_id:
+                    return {'success': False, 'error': 'Spécifiez soit une classe, soit un utilisateur, pas les deux'}
+                
+                # Vérifier si l'attribution existe déjà
+                if classe:
+                    cursor.execute("""
+                        SELECT id FROM evaluation_attributions 
+                        WHERE evaluation_id = %s AND classe = %s
+                    """, (evaluation_id, classe))
+                    if cursor.fetchone():
+                        return {'success': False, 'error': 'Cette classe est déjà attribuée à cette évaluation'}
+                else:
+                    cursor.execute("""
+                        SELECT id FROM evaluation_attributions 
+                        WHERE evaluation_id = %s AND utilisateur_id = %s
+                    """, (evaluation_id, utilisateur_id))
+                    if cursor.fetchone():
+                        return {'success': False, 'error': 'Cet utilisateur est déjà attribué à cette évaluation'}
+                
+                # Insérer l'attribution
+                cursor.execute("""
+                    INSERT INTO evaluation_attributions (evaluation_id, classe, utilisateur_id)
+                    VALUES (%s, %s, %s) RETURNING *
+                """, (evaluation_id, classe, utilisateur_id))
+                
+                attribution = cursor.fetchone()
+                self.connection.commit()
+                
+                return {'success': True, 'attribution': attribution}
+                
+        except Exception as e:
+            print(f"Erreur attribuer_evaluation: {str(e)}")
+            self.connection.rollback()
+            return {'success': False, 'error': str(e)}
+
+    def retirer_attribution(self, attribution_id):
+        """
+        Retire une attribution d'évaluation
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("DELETE FROM evaluation_attributions WHERE id = %s RETURNING id", (attribution_id,))
+                result = cursor.fetchone()
+                self.connection.commit()
+                
+                if result:
+                    return {'success': True, 'message': 'Attribution retirée avec succès'}
+                else:
+                    return {'success': False, 'error': 'Attribution non trouvée'}
+                    
+        except Exception as e:
+            print(f"Erreur retirer_attribution: {str(e)}")
+            self.connection.rollback()
+            return {'success': False, 'error': str(e)}
+
+    def get_attributions_evaluation(self, evaluation_id):
+        """
+        Récupère toutes les attributions d'une évaluation
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT ea.*, u.nom, u.prenom, u.classe as user_classe
+                    FROM evaluation_attributions ea
+                    LEFT JOIN utilisateurs u ON ea.utilisateur_id = u.id
+                    WHERE ea.evaluation_id = %s
+                    ORDER BY 
+                        CASE WHEN ea.classe IS NOT NULL THEN 1 ELSE 2 END,
+                        ea.classe, u.nom, u.prenom
+                """, (evaluation_id,))
+                return cursor.fetchall()
+        except Exception as e:
+            print(f"Erreur get_attributions_evaluation: {str(e)}")
+            return []
+
+    def get_utilisateurs_concernes_par_evaluation(self, evaluation_id):
+        """
+        Récupère tous les utilisateurs concernés par une évaluation
+        (via attribution par classe ou par utilisateur)
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    -- Utilisateurs via attribution directe
+                    SELECT DISTINCT u.*
+                    FROM utilisateurs u
+                    JOIN evaluation_attributions ea ON u.id = ea.utilisateur_id
+                    WHERE ea.evaluation_id = %s
+                    
+                    UNION
+                    
+                    -- Utilisateurs via attribution par classe
+                    SELECT DISTINCT u.*
+                    FROM utilisateurs u
+                    JOIN evaluation_attributions ea ON u.classe = ea.classe
+                    WHERE ea.evaluation_id = %s AND ea.classe IS NOT NULL
+                    
+                    ORDER BY nom, prenom
+                """, (evaluation_id, evaluation_id))
+                return cursor.fetchall()
+        except Exception as e:
+            print(f"Erreur get_utilisateurs_concernes_par_evaluation: {str(e)}")
+            return []
+
+    def modifier_evaluation(self, evaluation_id, module=None, contexte=None):
+        """
+        Modifie les informations d'une évaluation
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                updates = []
+                params = []
+                
+                if module is not None:
+                    updates.append("module = %s")
+                    params.append(module)
+                if contexte is not None:
+                    updates.append("contexte = %s")
+                    params.append(contexte)
+                
+                if not updates:
+                    return {'success': False, 'error': 'Aucune modification spécifiée'}
+                
+                params.append(evaluation_id)
+                query = f"UPDATE evaluations SET {', '.join(updates)} WHERE id = %s RETURNING *"
+                
+                cursor.execute(query, params)
+                evaluation_modifiee = cursor.fetchone()
+                self.connection.commit()
+                
+                if evaluation_modifiee:
+                    return {'success': True, 'evaluation': evaluation_modifiee}
+                else:
+                    return {'success': False, 'error': 'Évaluation non trouvée'}
+                    
+        except Exception as e:
+            print(f"Erreur modifier_evaluation: {str(e)}")
+            self.connection.rollback()
+            return {'success': False, 'error': str(e)}
+            
     # ===== MÉTHODES VALIDATIONS =====
     
     def mettre_a_jour_validation(self, utilisateur_id, evaluation_id, item_id, niveau, commentaire, validateur):
@@ -505,3 +662,112 @@ class Database:
         except Exception as e:
             print(f"Erreur get_validations_par_evaluation: {str(e)}")
             return []
+
+# Dans votre classe Database, ajoutez ces méthodes :
+
+    def ajouter_items_evaluation(self, evaluation_id, items_ids):
+        """Ajouter des items à une évaluation"""
+        try:
+            # Récupérer l'évaluation
+            evaluation = self.get_evaluation_detail(evaluation_id)
+            if not evaluation:
+                return {'success': False, 'error': 'Évaluation non trouvée'}
+            
+            # Récupérer les items actuels
+            evaluation_data, current_items = evaluation
+            current_item_ids = [item['id'] for item in current_items]
+            
+            # Ajouter les nouveaux items
+            new_items = list(set(current_item_ids + items_ids))
+            
+            # Mettre à jour l'évaluation
+            success = self.modifier_evaluation_items(evaluation_id, new_items)
+            
+            if success:
+                return {'success': True, 'message': f'{len(items_ids)} item(s) ajouté(s)'}
+            else:
+                return {'success': False, 'error': 'Erreur lors de l\'ajout des items'}
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def retirer_item_evaluation(self, evaluation_id, item_id):
+        """Retirer un item d'une évaluation"""
+        try:
+            # Récupérer l'évaluation
+            evaluation = self.get_evaluation_detail(evaluation_id)
+            if not evaluation:
+                return {'success': False, 'error': 'Évaluation non trouvée'}
+            
+            # Récupérer les items actuels
+            evaluation_data, current_items = evaluation
+            current_item_ids = [item['id'] for item in current_items]
+            
+            # Vérifier si l'item existe dans l'évaluation
+            if item_id not in current_item_ids:
+                return {'success': False, 'error': 'Item non trouvé dans cette évaluation'}
+            
+            # Retirer l'item
+            current_item_ids.remove(item_id)
+            
+            # Mettre à jour l'évaluation
+            success = self.modifier_evaluation_items(evaluation_id, current_item_ids)
+            
+            if success:
+                # Supprimer les validations associées à cet item
+                self.supprimer_validations_item(evaluation_id, item_id)
+                return {'success': True, 'message': 'Item retiré avec succès'}
+            else:
+                return {'success': False, 'error': 'Erreur lors du retrait de l\'item'}
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def modifier_evaluation_items(self, evaluation_id, items_ids):
+        """Modifier les items d'une évaluation - VERSION POSTGRESQL CORRIGÉE"""
+        try:
+            with self.connection.cursor() as cursor:
+                print(f"🔄 Mise à jour items évaluation {evaluation_id} avec {len(items_ids)} items")
+                
+                # 1. Supprimer les anciennes associations
+                cursor.execute("DELETE FROM evaluation_items WHERE evaluation_id = %s", (evaluation_id,))
+                deleted_count = cursor.rowcount
+                print(f"✅ {deleted_count} anciennes associations supprimées")
+                
+                # 2. Ajouter les nouvelles associations
+                inserted_count = 0
+                for item_id in items_ids:
+                    try:
+                        cursor.execute(
+                            "INSERT INTO evaluation_items (evaluation_id, item_id) VALUES (%s, %s)",
+                            (evaluation_id, item_id)
+                        )
+                        inserted_count += 1
+                    except Exception as e:
+                        print(f"  ❌ Erreur insertion item {item_id}: {e}")
+                
+                self.connection.commit()
+                print(f"✅ Évaluation {evaluation_id} mise à jour: {inserted_count}/{len(items_ids)} items insérés")
+                return inserted_count > 0  # Retourne True si au moins un item a été inséré
+            
+        except Exception as e:
+            print(f"❌ Erreur PostgreSQL mise à jour items: {e}")
+            self.connection.rollback()
+            return False
+
+    def supprimer_validations_item(self, evaluation_id, item_id):
+        """Supprimer les validations pour un item spécifique - VERSION POSTGRESQL CORRIGÉE"""
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM validations WHERE evaluation_id = %s AND item_id = %s",
+                    (evaluation_id, item_id)
+                )
+                deleted_count = cursor.rowcount
+                self.connection.commit()
+                print(f"✅ {deleted_count} validation(s) supprimée(s) pour évaluation {evaluation_id}, item {item_id}")
+                return True
+        except Exception as e:
+            print(f"❌ Erreur suppression validations: {e}")
+            self.connection.rollback()
+            return False           
