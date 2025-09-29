@@ -6,34 +6,6 @@ import os, sys
 app = Flask(__name__)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:5000')
 
-# === FILTRE JINJA2 POUR LE FORMATAGE DES DATES ===
-@app.template_filter('datetimeformat')
-def datetimeformat(value, format='%d/%m/%Y'):
-    """
-    Filtre Jinja2 pour formater les dates dans les templates
-    """
-    if value is None:
-        return "Non définie"
-    
-    # Si c'est déjà un objet datetime
-    if isinstance(value, datetime):
-        return value.strftime(format)
-    
-    # Si c'est une string, essayer de la parser
-    try:
-        # Essayer différents formats de date
-        for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y', '%d/%m/%Y %H:%M:%S']:
-            try:
-                if isinstance(value, str):
-                    date_obj = datetime.strptime(value, fmt)
-                    return date_obj.strftime(format)
-            except ValueError:
-                continue
-    except Exception as e:
-        print(f"Erreur formatage date: {e}")
-    
-    # Si on ne peut pas parser, retourner la valeur originale
-    return str(value) if value else "Non définie"
 
 def get_backend_data(endpoint):
     try:

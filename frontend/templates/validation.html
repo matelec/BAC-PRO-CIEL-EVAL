@@ -25,7 +25,6 @@
     <div class="validation-header">
         <h2>{{ evaluation.module }}</h2>
         <strong>Élève:</strong> {{ utilisateur.prenom }} {{ utilisateur.nom }} ({{ utilisateur.classe }})
-        <p><strong>Date:</strong> {{ evaluation.date_evaluation | datetimeformat('%d %B %Y') or 'Non définie' }}
     </div>
 
     <!-- Section Items à valider -->
