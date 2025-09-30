@@ -667,6 +667,29 @@ def valider_multiple():
             'error': error_msg
         }), 500
 
+
+@app.route('/api/utilisateur/<int:user_id>/profil', methods=['GET'])
+def get_user_profile(user_id):
+    """Route pour le profil utilisateur"""
+    app.logger.info(f"🔍 Backend: Récupération profil utilisateur {user_id}")
+    
+    try:
+        # Utiliser la méthode du modèle
+        profile_data = db.get_user_profile(user_id)
+        
+        if not profile_data:
+            app.logger.error(f"❌ Utilisateur {user_id} non trouvé ou erreur")
+            return jsonify({'error': 'Utilisateur non trouvé'}), 404
+        
+        app.logger.info(f"✅ Profil généré avec succès pour {profile_data['user']['prenom']} {profile_data['user']['nom']}")
+        return jsonify(profile_data)
+        
+    except Exception as e:
+        app.logger.error(f"❌ Erreur backend: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     print("🚀 Démarrage de l'API Bac Pro CIEL - Backend corrigé")
     app.run(host='0.0.0.0', port=5000, debug=True)

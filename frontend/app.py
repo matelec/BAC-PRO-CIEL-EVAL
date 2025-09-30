@@ -6,7 +6,6 @@ import os, sys
 app = Flask(__name__)
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:5000')
 
-
 def get_backend_data(endpoint):
     try:
         response = requests.get(f"{BACKEND_URL}{endpoint}")
@@ -26,6 +25,20 @@ def index():
 def utilisateurs():
     utilisateurs = get_backend_data('/api/utilisateurs')
     return render_template('utilisateurs.html', utilisateurs=utilisateurs)
+
+@app.route('/bilan-intermediaire')
+def bilan_intermediaire():
+    utilisateurs = get_backend_data('/api/utilisateurs')
+    return render_template('bilan_intermediaire.html', 
+                         utilisateurs=utilisateurs, 
+                         type_bilan='intermediaire')
+
+@app.route('/bilan-final')
+def bilan_final():
+    utilisateurs = db.get_utilisateurs()
+    return render_template('bilan_final.html', 
+                         utilisateurs=utilisateurs, 
+                         type_bilan='final')                         
 
 @app.route('/evaluations')
 def evaluations():
@@ -361,6 +374,19 @@ def retirer_item_evaluation():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/utilisateur/<int:user_id>/profil', methods=['GET'])
+def get_user_profile_proxy(user_id):
+    """Proxy vers le backend pour récupérer le profil utilisateur"""
+    try:
+        #response = requests.get(f"{BACKEND_URL}/api/utilisateur/{user_id}/profil")
+        backend_url = f"{BACKEND_URL}/api/utilisateur/{user_id}/profil"
+        app.logger.info(f"📡 Appel backend: {backend_url}")
+        response = requests.get(backend_url, timeout=10)
+        print(f"🔍 Récupération profil utilisateur ID: {user_id}", flush=True)
+        app.logger.info(f"📥 Réponse backend - Status: {response.status_code}")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
         
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

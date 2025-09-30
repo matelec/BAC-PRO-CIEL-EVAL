@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BAC PRO CIEL - Gestion des Compétences{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bilan.css') }}">
+    <script src="{{ url_for('static', filename='bilan_intermediaire.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">📊 BAC PRO CIEL</h1>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}">🏠 Accueil</a></li>
+                <li><a href="{{ url_for('utilisateurs') }}">👥 Utilisateurs</a></li>
+                <li><a href="{{ url_for('evaluations') }}">📋 Évaluations</a></li>
+                <li><a href="{{ url_for('referentiel') }}">📚 Référentiel</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="bilan-page">
+        <div class="bilan-container">
+            <div class="bilan-header">
+                <h1>Bilan des Compétences</h1>
+                <div class="bilan-actions">
+                    <select id="userSelector" class="form-select">
+                        <option value="">Sélectionner un élève...</option>
+                        {% for user in utilisateurs %}
+                        <option value="{{ user.id }}">{{ user.prenom }} {{ user.nom }} - {{ user.classe }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="generateReport" class="btn-primary">Générer le rapport</button>
+                </div>
+            </div>
+
+            <div id="bilanContent" style="display: none;">
+                <!-- Section Profil Utilisateur -->
+                <div class="profile-section">
+                    <h2>Profil de l'Élève</h2>
+                    <div class="profile-card">
+                        <div class="profile-info">
+                            <h3 id="profileName"></h3>
+                            <p><strong>Classe:</strong> <span id="profileClasse"></span></p>
+                            <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+                            <p><strong>Spécialité:</strong> <span id="profileSpecialite"></span></p>
+                            <p><strong>Date de génération:</strong> <span id="reportDate"></span></p>
+                        </div>
+                        <div class="profile-stats">
+                            <div class="stat">
+                                <span class="stat-number" id="totalCompetences">0</span>
+                                <span class="stat-label">Compétences totales</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number" id="moyenneGenerale">0.0</span>
+                                <span class="stat-label">Moyenne générale</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number" id="competencesMaitrisees">0</span>
+                                <span class="stat-label">Compétences maîtrisées</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Graphiques -->
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h3>Radar des Compétences</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Progression par Compétence</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Tableau Détaillé -->
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>Détail des Compétences</h3>
+                        <!--<div class="table-actions">
+                            <input type="text" id="searchCompetences" placeholder="Rechercher une compétence..." class="form-input">
+                            <select id="filterStatus" class="form-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="maîtrisée">Maîtrisées</option>
+                                <option value="en cours">En cours</option>
+                                <option value="à travailler">À travailler</option>
+                                <option value="non évaluée">Non évaluées</option>
+                            </select>
+                        </div>-->
+                    </div>
+                    <div class="table-responsive">
+                        <table class="competence-table">
+                            <thead>
+                                <tr>
+                                    <th>Compétence</th>
+                                    <th>Libellé</th>
+                                    <th>Niveau Moyen</th>
+                                    <th>Validations</th>
+                                    <th>Total Points</th>
+                                    <th>Statut</th>
+                                    <th>Évals Première</th>
+                                    <th>Évals Terminale</th>
+                                </tr>
+                            </thead>
+                            <tbody id="competenceTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <div id="tableSummary" class="table-summary"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bouton d'export -->
+            <div class="export-section">
+                <button id="exportPDF" class="btn-secondary">Exporter en PDF</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

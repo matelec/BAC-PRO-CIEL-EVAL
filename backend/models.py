@@ -771,3 +771,101 @@ class Database:
             print(f"❌ Erreur suppression validations: {e}")
             self.connection.rollback()
             return False           
+
+    def get_user_profile(self, user_id):
+        """Récupère le profil complet d'un utilisateur avec ses compétences"""
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 1. Récupérer les informations de base de l'utilisateur
+                cursor.execute("""
+                    SELECT id, nom, prenom, email, classe, specialite, 
+                        date_naissance, date_entree_bac, date_certification
+                    FROM utilisateurs 
+                    WHERE id = %s
+                """, (user_id,))
+                user = cursor.fetchone()
+                
+                if not user:
+                    return None
+                
+                # 2. Récupérer les statistiques par compétence
+                cursor.execute("""
+                    SELECT 
+                        c.id as competence_id,
+                        c.code as competence_code,
+                        c.libelle as competence_libelle,
+                        COUNT(v.id) as nb_validations,
+                        COALESCE(SUM(v.niveau_validation), 0) as total_niveaux,
+                        COALESCE(ROUND(AVG(v.niveau_validation)::numeric, 2), 0) as niveau_moyen,
+                        -- Calcul du nombre d'évaluations en Première pour cette compétence
+                        (
+                            SELECT COUNT(DISTINCT e.id)
+                            FROM evaluations e
+                            JOIN evaluation_items ei ON e.id = ei.evaluation_id
+                            JOIN items i2 ON ei.item_id = i2.id
+                            JOIN evaluation_attributions ea ON e.id = ea.evaluation_id
+                            WHERE i2.competence_id = c.id
+                            AND ea.classe = 'Première'
+                        ) as nb_eval_premiere,
+                        -- Calcul du nombre d'évaluations en Terminale pour cette compétence
+                        (
+                            SELECT COUNT(DISTINCT e.id)
+                            FROM evaluations e
+                            JOIN evaluation_items ei ON e.id = ei.evaluation_id
+                            JOIN items i2 ON ei.item_id = i2.id
+                            JOIN evaluation_attributions ea ON e.id = ea.evaluation_id
+                            WHERE i2.competence_id = c.id
+                            AND ea.classe = 'Terminale'
+                        ) as nb_eval_terminale
+
+                    FROM competences c
+                    LEFT JOIN items i ON i.competence_id = c.id
+                    LEFT JOIN validations v ON v.item_id = i.id AND v.utilisateur_id = %s
+                    GROUP BY c.id, c.code, c.libelle
+                    ORDER BY c.code
+                """, (user_id,))
+                
+                competences = cursor.fetchall()
+                
+                # 3. Calculer le statut pour chaque compétence
+                competences_list = []
+                for comp in competences:
+                    total = comp['total_niveaux']
+                    nb_validations = comp['nb_validations']
+                    niveau_moyen = float(comp['niveau_moyen'])
+                    
+                    # Calcul du statut
+                    if nb_validations == 0:
+                        statut = "Non évalué"
+                        statut_class = "status-not-evaluated"
+                    elif total >= 12 and niveau_moyen >= 3:
+                        statut = "Maîtrisé"
+                        statut_class = "status-mastered"
+                    elif total >= 8 and niveau_moyen >= 2:
+                        statut = "En cours"
+                        statut_class = "status-in-progress"
+                    else:
+                        statut = "À travailler"
+                        statut_class = "status-to-work"
+                    
+                    competences_list.append({
+                        'competence_id': comp['competence_id'],
+                        'competence_code': comp['competence_code'],
+                        'competence_libelle': comp['competence_libelle'],
+                        'nb_eval_premiere': comp['nb_eval_premiere'],
+                        'nb_eval_terminale': comp['nb_eval_terminale'],
+                        'total_niveaux': int(comp['total_niveaux']),
+                        'nb_validations': comp['nb_validations'],
+                        'niveau_moyen': niveau_moyen,
+                        'statut': statut,
+                        'statut_class': statut_class
+                    })
+                
+                return {
+                    'user': dict(user),
+                    'competences': competences_list
+                }
+                
+        except Exception as e:
+            print(f"Erreur get_user_profile: {str(e)}")
+            return None            

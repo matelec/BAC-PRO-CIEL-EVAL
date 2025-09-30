@@ -383,27 +383,220 @@ initFileUpload() {
     }
 
     // Voir profil utilisateur
-    viewUserProfile(userId) {
-        console.log('👁️ Voir profil:', userId);
-        const modal = document.getElementById('profileModal');
-        const content = document.getElementById('profileContent');
+viewUserProfile(userId) {
+    console.log('👁️ Voir profil:', userId);
+    const modal = document.getElementById('profileModal');
+    const content = document.getElementById('profileContent');
+    
+    if (content) {
+        content.innerHTML = `
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>Chargement du profil...</p>
+            </div>
+        `;
+    }
+    
+    app.openModal('profileModal');
+    
+    // Charger les données réelles
+    this.loadUserProfile(userId, content);
+}
+
+// Charger le profil de l'utilisateur
+async loadUserProfile(userId, contentElement) {
+    try {
+        const response = await fetch(`/api/utilisateur/${userId}/profil`);
         
-        if (content) {
-            content.innerHTML = '<p>Chargement du profil...</p>';
+        if (!response.ok) {
+            throw new Error('Erreur lors du chargement du profil');
         }
         
-        app.openModal('profileModal');
+        const data = await response.json();
+        this.displayUserProfile(data, contentElement);
         
-        setTimeout(() => {
-            if (content) {
-                content.innerHTML = `
-                    <div class="profile-info">
-                        <h4>Profil de l'utilisateur #${userId}</h4>
-                        <p>Fonctionnalité en cours de développement...</p>
+    } catch (error) {
+        console.error('Erreur:', error);
+        contentElement.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Impossible de charger le profil</p>
+            </div>
+        `;
+    }
+}
+
+    // Afficher le profil de l'utilisateur
+    displayUserProfile(data, contentElement) {
+        const user = data.user;
+        const competences = data.competences;
+        
+        // Calculer les statistiques globales
+        const totalEvaluations = competences.reduce((sum, c) => 
+            sum + c.nb_eval_premiere + c.nb_eval_terminale, 0);
+        const competencesMaitrisees = competences.filter(c => 
+            c.statut === 'Maîtrisé').length;
+        const competencesEnCours = competences.filter(c => 
+            c.statut === 'En cours').length;
+        
+        contentElement.innerHTML = `
+            <!-- Informations de l'utilisateur -->
+            <div class="profile-header">
+                <div class="profile-avatar-large">
+                    ${user.prenom[0]}${user.nom[0]}
+                </div>
+                <div class="profile-info">
+                    <h2>${user.prenom} ${user.nom}</h2>
+                    <p class="profile-email"><i class="fas fa-envelope"></i> ${user.email}</p>
+                    <div class="profile-details">
+                        <span class="badge badge-classe">${user.classe}</span>
+                        ${user.specialite ? `<span class="badge badge-specialite">${user.specialite}</span>` : ''}
+                        ${user.date_naissance ? `<span class="profile-detail"><i class="fas fa-birthday-cake"></i> ${this.formatDate(user.date_naissance)}</span>` : ''}
+                        ${user.date_entree_bac ? `<span class="profile-detail"><i class="fas fa-calendar-alt"></i> Entrée: ${user.date_entree_bac}</span>` : ''}
+                        ${user.date_certification ? `<span class="profile-detail"><i class="fas fa-certificate"></i> Certification: ${user.date_certification}</span>` : ''}
                     </div>
-                `;
-            }
-        }, 500);
+                </div>
+            </div>
+            
+            <!-- Statistiques globales -->
+            <div class="profile-stats">
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-total">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">${totalEvaluations}</div>
+                        <div class="stat-label">Évaluations</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">${competencesMaitrisees} / 9</div>
+                        <div class="stat-label">Maîtrisées</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-progress">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">${competencesEnCours} / 9</div>
+                        <div class="stat-label">En cours</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon-warning">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">${competences.length - competencesMaitrisees - competencesEnCours} / 9</div>
+                        <div class="stat-label">À travailler</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tableau des compétences -->
+            <div class="profile-competences">
+                <h3><i class="fas fa-chart-line"></i> Détail des compétences</h3>
+                <div class="table-responsive">
+                    <table class="competences-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Libellé</th>
+                                <th>Éval. Première</th>
+                                <th>Éval. Terminale</th>
+                                <th>Total Points</th>
+                                <th>Niveau Moyen</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${competences.map(comp => `
+                                <tr>
+                                    <td><strong>${comp.competence_code}</strong></td>
+                                    <td class="competence-libelle">${comp.competence_libelle}</td>
+                                    <td class="text-center">
+                                        <span class="badge badge-count">${comp.nb_eval_premiere}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-count">${comp.nb_eval_terminale}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-total">${comp.total_niveaux}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-moyenne">${comp.niveau_moyen}</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge ${comp.statut_class}">
+                                            ${this.getStatusIcon(comp.statut)} ${comp.statut}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Légende -->
+            <div class="profile-legend">
+                <h4><i class="fas fa-info-circle"></i> Légende des statuts</h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="status-badge status-mastered">
+                            <i class="fas fa-star"></i> Maîtrisé
+                        </span>
+                        <span class="legend-desc">Total ≥ 12 points et moyenne ≥ 3</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-badge status-in-progress">
+                            <i class="fas fa-hourglass-half"></i> En cours
+                        </span>
+                        <span class="legend-desc">Total ≥ 8 points et moyenne ≥ 2</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-badge status-to-work">
+                            <i class="fas fa-exclamation-triangle"></i> À travailler
+                        </span>
+                        <span class="legend-desc">En dessous des seuils</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-badge status-not-evaluated">
+                            <i class="fas fa-minus-circle"></i> Non évalué
+                        </span>
+                        <span class="legend-desc">Aucune évaluation</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Fonction utilitaire pour formater les dates
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('fr-FR', options);
+    }
+
+    // Fonction utilitaire pour obtenir l'icône du statut
+    getStatusIcon(statut) {
+        switch(statut) {
+            case 'Maîtrisé':
+                return '<i class="fas fa-star"></i>';
+            case 'En cours':
+                return '<i class="fas fa-hourglass-half"></i>';
+            case 'À travailler':
+                return '<i class="fas fa-exclamation-triangle"></i>';
+            case 'Non évalué':
+                return '<i class="fas fa-minus-circle"></i>';
+            default:
+                return '<i class="fas fa-question-circle"></i>';
+        }
     }
 
     // Modifier utilisateur
@@ -629,7 +822,6 @@ initFileUpload() {
             row.style.display = matchesSearch && matchesClasse ? '' : 'none';
         });
     }
-
    
 }
 

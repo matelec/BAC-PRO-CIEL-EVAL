@@ -1,0 +1,657 @@
+/* ===== FOND BLANC GLOBAL ===== */
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --secondary-color: #2c3e50;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --gray-light: #bdc3c7;
+    --gray-dark: #7f8c8d;
+    
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: white;
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+}
+
+.bilan-page {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: white;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.bilan-container {
+    background: white;
+    color: #333;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ===== NAVBAR ===== */
+.navbar {
+    background: var(--secondary-color);
+    color: white;
+    padding: 1rem 0;
+    box-shadow: var(--box-shadow);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.nav-menu a:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== EN-TÊTE ===== */
+.bilan-header {
+    background: white;
+    padding: 20px 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bilan-header h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.bilan-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ===== CARTE DE PROFIL ===== */
+.profile-section {
+    margin-bottom: 30px;
+}
+
+.profile-section h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.profile-card {
+    background: white;;
+    border: 1px solid #e0e0e0; 
+    box-shadow: var(--box-shadow);
+    color: #333;
+    border-radius: var(--border-radius);
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.profile-info {
+    flex: 1;
+    min-width: 250px;
+}
+
+.profile-info h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.profile-info p {
+    color: #555;
+    margin: 10px 0;
+    font-size: 0.95rem;
+}
+
+/* ===== STATISTIQUES ===== */
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    flex: 1;
+    min-width: 300px;
+}
+
+.stat {
+    background: #f8f9fa !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: var(--border-radius);
+    padding: 20px 15px;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-number {
+    color: var(--primary-color) !important;
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #666 !important;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* ===== GRAPHIQUES ===== */
+.charts-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.chart-container {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    box-shadow: var(--box-shadow) !important;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container h3 {
+    color: #2c3e50 !important;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.chart-wrapper {
+    flex: 1;
+    position: relative;
+    height: 300px;
+}
+
+.chart-wrapper canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
+
+/* ===== TABLEAU ===== */
+.table-section {
+    /*background: white;*/
+    border: 1px solid #e0e0e0;
+    box-shadow: var(--box-shadow);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    margin-bottom: 30px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.table-header h3 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.table-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-bottom: 15px;
+}
+
+.competence-table {
+    color: #333;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.competence-table th {
+    color: #2c3e50;
+    border: 1px solid #dee2e6;
+    padding: 12px 8px;
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    white-space: nowrap;
+}
+
+.competence-table td {
+    color: #333; 
+    border: 1px solid #dee2e6;
+    text-align: center;
+    padding: 10px 8px;
+    vertical-align: center;
+}
+
+.competence-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.competence-table tbody tr:nth-child(even):not(.competence-orange):not(.competence-green):not(.competence-bleui) {
+    background-color: #fafafa !important;
+}
+
+.competence-table tbody tr:nth-child(even):hover {
+    background-color: #f1f3f4 !important;
+}*/
+
+.table-footer {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 15px;
+}
+
+.table-summary {
+    color: #666;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* ===== BOUTONS ===== */
+.btn-primary {
+    background: var(--primary-color) !important;
+    color: white !important;
+    border: 1px solid var(--primary-dark) !important;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-secondary {
+    background: var(--gray-dark) !important;
+    color: white !important;
+    border: 1px solid var(--gray-dark) !important;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px);
+}
+
+.btn-secondary:hover {
+    background: #6c757d !important;
+    transform: translateY(-1px);
+}
+
+/* ===== FORMULAIRES ===== */
+.form-select {
+    background: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+    padding: 10px;
+    border-radius: var(--border-radius);
+    min-width: 200px;
+    transition: var(--transition);
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.form-input {
+    background: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+    padding: 10px;
+    border-radius: var(--border-radius);
+    min-width: 250px;
+    transition: var(--transition);
+}
+
+.form-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* ===== STATUTS COLORÉS ===== */
+.status-mastered { 
+    color: var(--success-color) !important; 
+    font-weight: bold;
+    background-color: rgba(39, 174, 96, 0.1) !important;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+.status-in-progress { 
+    color: var(--warning-color); 
+    font-weight: bold;
+    background-color: rgba(243, 156, 18, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+.status-to-work { 
+    color: var(--danger-color) !important; 
+    font-weight: bold;
+    background-color: rgba(231, 76, 60, 0.1) !important;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+.status-not-evaluated { 
+    color: var(--gray-dark) !important; 
+    font-style: italic;
+    background-color: rgba(149, 165, 166, 0.1) !important;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* ===== EXPORT SECTION ===== */
+.export-section {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        height: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    .bilan-container {
+        padding: 15px;
+    }
+    
+    .bilan-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .bilan-actions {
+        justify-content: center;
+    }
+    
+    .profile-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .profile-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .table-actions {
+        justify-content: center;
+    }
+    
+    .form-select,
+    .form-input {
+        min-width: 100%;
+    }
+    
+    .competence-table {
+        font-size: 0.8rem;
+    }
+    
+    .competence-table th,
+    .competence-table td {
+        padding: 8px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav-menu {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .nav-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+/* ===== IMPRESSION ===== */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .bilan-container {
+        background: white !important;
+        color: black !important;
+        padding: 0;
+        margin: 0;
+        max-width: none;
+    }
+    
+    .bilan-actions,
+    .export-section,
+    .table-actions {
+        display: none !important;
+    }
+    
+    .profile-card,
+    .chart-container,
+    .table-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    .charts-section {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* ===== COULEURS DES STATUTS DANS LE TABLEAU ===== */
+.competence-table .status-mastered { 
+    color: var(--success-color) !important; 
+    font-weight: bold;
+    background-color: rgba(39, 174, 96, 0.2) !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-in-progress { 
+    color: var(--warning-color);
+    font-weight: bold;
+    background-color: rgba(243, 156, 18, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-to-work { 
+    color: var(--danger-color); 
+    font-weight: bold;
+    background-color: rgba(231, 76, 60, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-not-evaluated { 
+    color: var(--gray-dark) !important; 
+    font-style: italic;
+    background-color: rgba(149, 165, 166, 0.2) !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+/* Style pour les cellules de statut */
+.competence-table td:nth-child(6) {
+    text-align: center;
+    font-weight: 500;
+}
+
+/* ===== COULEURS DES COMPÉTENCES - PRIORITÉ MAXIMALE ===== */
+.competence-table tbody tr.competence-orange td {
+    background-color: rgba(243, 156, 18, 0.25) !important;
+}
+
+.competence-table tbody tr.competence-orange td:first-child {
+    border-left: 5px solid #f39c12 !important;
+    font-weight: bold;
+}
+
+.competence-table tbody tr.competence-green td {
+    background-color: rgba(39, 174, 96, 0.25) !important;
+}
+
+.competence-table tbody tr.competence-green td:first-child {
+    border-left: 5px solid #27ae60 !important;
+    font-weight: bold;
+}
+
+.competence-table tbody tr.competence-bleui td {
+    background-color: rgba(52, 152, 219, 0.25) !important;
+}
+
+.competence-table tbody tr.competence-bleui td:first-child {
+    border-left: 5px solid #3498db !important;
+    font-weight: bold;
+}
+
+/* Renforcement des couleurs pour les statuts */
+.competence-table .status-mastered { 
+    color: var(--success-color) !important; 
+    font-weight: bold;
+    background-color: rgba(39, 174, 96, 0.2) !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-in-progress { 
+    color: var(--warning-color);
+    font-weight: bold;
+    background-color: rgba(243, 156, 18, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-to-work { 
+    color: var(--danger-color);
+    background-color: rgba(231, 76, 60, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+.competence-table .status-not-evaluated { 
+    color: var(--gray-dark) !important; 
+    font-style: italic;
+    background-color: rgba(149, 165, 166, 0.2) !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    min-width: 120px;
+}
+
+}
