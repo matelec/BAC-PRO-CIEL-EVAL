@@ -269,3 +269,302 @@ BEGIN
     RAISE NOTICE 'Table evaluation_attributions créée pour gérer les attributions par classe ou utilisateur';
     RAISE NOTICE 'Vue v_utilisateurs_evaluations créée pour faciliter les requêtes';
 END $$;
+
+
+-- ========================================
+-- MIGRATION : Système d'archivage des élèves
+-- À exécuter sur votre base de données existante
+-- ========================================
+
+-- Table pour archiver les élèves diplômés
+CREATE TABLE IF NOT EXISTS utilisateurs_archives (
+    id SERIAL PRIMARY KEY,
+    utilisateur_id INTEGER NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    prenom VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    classe_origine VARCHAR(50) NOT NULL,
+    specialite VARCHAR(100),
+    date_naissance DATE,
+    date_entree_bac INTEGER,
+    date_certification INTEGER,
+    date_inscription TIMESTAMP,
+    date_archivage TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    annee_diplome INTEGER,
+    nb_validations INTEGER DEFAULT 0
+);
+
+-- Index pour améliorer les performances
+CREATE INDEX IF NOT EXISTS idx_archives_annee ON utilisateurs_archives(annee_diplome);
+CREATE INDEX IF NOT EXISTS idx_archives_utilisateur_id ON utilisateurs_archives(utilisateur_id);
+CREATE INDEX IF NOT EXISTS idx_archives_date ON utilisateurs_archives(date_archivage);
+CREATE INDEX IF NOT EXISTS idx_archives_nom ON utilisateurs_archives(nom);
+CREATE INDEX IF NOT EXISTS idx_archives_prenom ON utilisateurs_archives(prenom);
+
+-- ========================================
+-- FONCTION PRINCIPALE : Passage avec archivage
+-- ========================================
+CREATE OR REPLACE FUNCTION passage_premiere_terminale_avec_archivage()
+RETURNS TABLE (
+    nb_archives INTEGER,
+    nb_passes INTEGER,
+    message TEXT
+) AS $$
+DECLARE
+    v_nb_archives INTEGER;
+    v_nb_passes INTEGER;
+    v_annee_actuelle INTEGER;
+BEGIN
+    -- Année actuelle pour l'archivage
+    v_annee_actuelle := EXTRACT(YEAR FROM CURRENT_DATE);
+    
+    -- 1. Archiver les élèves de Terminale
+    WITH archived AS (
+        INSERT INTO utilisateurs_archives (
+            utilisateur_id, nom, prenom, email, classe_origine,
+            specialite, date_naissance, date_entree_bac, date_certification,
+            date_inscription, annee_diplome, nb_validations
+        )
+        SELECT 
+            u.id,
+            u.nom,
+            u.prenom,
+            u.email,
+            u.classe,
+            u.specialite,
+            u.date_naissance,
+            u.date_entree_bac,
+            u.date_certification,
+            u.date_inscription,
+            v_annee_actuelle,
+            COUNT(v.id)
+        FROM utilisateurs u
+        LEFT JOIN validations v ON u.id = v.utilisateur_id
+        WHERE u.classe = 'Terminale'
+        GROUP BY u.id
+        RETURNING *
+    )
+    SELECT COUNT(*) INTO v_nb_archives FROM archived;
+    
+    -- 2. Supprimer les élèves de Terminale (après archivage)
+    DELETE FROM utilisateurs WHERE classe = 'Terminale';
+    
+    -- 3. Faire passer les Premières en Terminale
+    WITH passed AS (
+        UPDATE utilisateurs
+        SET classe = 'Terminale'
+        WHERE classe = 'Première'
+        RETURNING *
+    )
+    SELECT COUNT(*) INTO v_nb_passes FROM passed;
+    
+    -- Retourner les résultats
+    RETURN QUERY SELECT 
+        v_nb_archives,
+        v_nb_passes,
+        format('%s élève(s) de Terminale archivé(s) et %s élève(s) passé(s) de Première en Terminale', 
+               v_nb_archives, v_nb_passes)::TEXT;
+        
+END;
+$$ LANGUAGE plpgsql;
+
+-- ========================================
+-- VUE : Prévisualisation du passage
+-- ========================================
+CREATE OR REPLACE VIEW v_preview_passage_terminale AS
+SELECT 
+    'Terminale' as classe_actuelle,
+    'Archives' as destination,
+    COUNT(DISTINCT u.id) as nb_eleves,
+    COUNT(v.id) as nb_validations_total
+FROM utilisateurs u
+LEFT JOIN validations v ON u.id = v.utilisateur_id
+WHERE u.classe = 'Terminale'
+UNION ALL
+SELECT 
+    'Première' as classe_actuelle,
+    'Terminale' as destination,
+    COUNT(DISTINCT u.id) as nb_eleves,
+    COUNT(v.id) as nb_validations_total
+FROM utilisateurs u
+LEFT JOIN validations v ON u.id = v.utilisateur_id
+WHERE u.classe = 'Première';
+
+-- ========================================
+-- VUE : Statistiques des archives
+-- ========================================
+CREATE OR REPLACE VIEW v_stats_archives AS
+SELECT 
+    annee_diplome,
+    COUNT(*) as nb_diplomes,
+    ROUND(AVG(nb_validations), 2) as moyenne_validations,
+    MIN(date_archivage) as premiere_archive,
+    MAX(date_archivage) as derniere_archive
+FROM utilisateurs_archives
+GROUP BY annee_diplome
+ORDER BY annee_diplome DESC;
+
+-- ========================================
+-- VUE : Détails complets des archives
+-- ========================================
+CREATE OR REPLACE VIEW v_eleves_archives_complet AS
+SELECT 
+    ua.*,
+    COUNT(DISTINCT v.evaluation_id) as nb_evaluations_realisees,
+    COUNT(DISTINCT v.item_id) as nb_items_valides,
+    ROUND(AVG(v.niveau_validation), 2) as moyenne_niveaux
+FROM utilisateurs_archives ua
+LEFT JOIN validations v ON ua.utilisateur_id = v.utilisateur_id
+GROUP BY ua.id;
+
+-- ========================================
+-- FONCTION : Rechercher dans les archives
+-- ========================================
+CREATE OR REPLACE FUNCTION rechercher_archive(p_recherche TEXT)
+RETURNS TABLE (
+    id INTEGER,
+    nom VARCHAR(100),
+    prenom VARCHAR(100),
+    email VARCHAR(255),
+    annee_diplome INTEGER,
+    nb_validations INTEGER,
+    date_archivage TIMESTAMP
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        ua.id,
+        ua.nom,
+        ua.prenom,
+        ua.email,
+        ua.annee_diplome,
+        ua.nb_validations,
+        ua.date_archivage
+    FROM utilisateurs_archives ua
+    WHERE 
+        LOWER(ua.nom) LIKE LOWER('%' || p_recherche || '%') OR
+        LOWER(ua.prenom) LIKE LOWER('%' || p_recherche || '%') OR
+        LOWER(ua.email) LIKE LOWER('%' || p_recherche || '%')
+    ORDER BY ua.date_archivage DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ========================================
+-- FONCTION : Restaurer un élève archivé
+-- ========================================
+CREATE OR REPLACE FUNCTION restaurer_eleve_archive(p_archive_id INTEGER)
+RETURNS TABLE (
+    success BOOLEAN,
+    message TEXT
+) AS $$
+DECLARE
+    v_archive RECORD;
+BEGIN
+    -- Récupérer les infos de l'archive
+    SELECT * INTO v_archive
+    FROM utilisateurs_archives
+    WHERE id = p_archive_id;
+    
+    IF NOT FOUND THEN
+        RETURN QUERY SELECT FALSE, 'Archive non trouvée'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Vérifier si l'élève n'existe pas déjà
+    IF EXISTS (SELECT 1 FROM utilisateurs WHERE id = v_archive.utilisateur_id) THEN
+        RETURN QUERY SELECT FALSE, 'Cet élève existe déjà dans les utilisateurs actifs'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Restaurer l'élève
+    INSERT INTO utilisateurs (
+        id, nom, prenom, email, classe, specialite,
+        date_naissance, date_entree_bac, date_certification, date_inscription
+    ) VALUES (
+        v_archive.utilisateur_id,
+        v_archive.nom,
+        v_archive.prenom,
+        v_archive.email,
+        'Terminale', -- Restauré en Terminale
+        v_archive.specialite,
+        v_archive.date_naissance,
+        v_archive.date_entree_bac,
+        v_archive.date_certification,
+        v_archive.date_inscription
+    );
+    
+    -- Mettre à jour la séquence si nécessaire
+    PERFORM setval('utilisateurs_id_seq', 
+                   GREATEST((SELECT MAX(id) FROM utilisateurs), 
+                           (SELECT last_value FROM utilisateurs_id_seq)));
+    
+    RETURN QUERY SELECT TRUE, format('Élève %s %s restauré avec succès', v_archive.prenom, v_archive.nom)::TEXT;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+-- ========================================
+-- FONCTION : Obtenir l'historique complet d'un élève
+-- ========================================
+CREATE OR REPLACE FUNCTION get_historique_eleve(p_utilisateur_id INTEGER)
+RETURNS TABLE (
+    validation_id INTEGER,
+    date_validation TIMESTAMP,
+    niveau_validation INTEGER,
+    commentaire TEXT,
+    validateur VARCHAR(100),
+    module VARCHAR(100),
+    pole VARCHAR(50),
+    competence_code VARCHAR(10),
+    competence_libelle TEXT,
+    item_code VARCHAR(20),
+    item_description TEXT,
+    est_archive BOOLEAN,
+    classe_actuelle VARCHAR(50)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        v.id as validation_id,
+        v.date_validation,
+        v.niveau_validation,
+        v.commentaire,
+        v.validateur,
+        e.module,
+        e.pole,
+        c.code as competence_code,
+        c.libelle as competence_libelle,
+        i.code_item as item_code,
+        i.description as item_description,
+        EXISTS(SELECT 1 FROM utilisateurs_archives ua WHERE ua.utilisateur_id = p_utilisateur_id) as est_archive,
+        COALESCE(u.classe, ua.classe_origine) as classe_actuelle
+    FROM validations v
+    JOIN evaluations e ON v.evaluation_id = e.id
+    JOIN items i ON v.item_id = i.id
+    JOIN competences c ON i.competence_id = c.id
+    LEFT JOIN utilisateurs u ON v.utilisateur_id = u.id
+    LEFT JOIN utilisateurs_archives ua ON v.utilisateur_id = ua.utilisateur_id
+    WHERE v.utilisateur_id = p_utilisateur_id
+    ORDER BY v.date_validation DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Message de confirmation
+DO $$ 
+BEGIN
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Migration réussie !';
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Système d''archivage installé avec succès';
+    RAISE NOTICE 'Tables créées : utilisateurs_archives';
+    RAISE NOTICE 'Fonctions disponibles :';
+    RAISE NOTICE '  - passage_premiere_terminale_avec_archivage()';
+    RAISE NOTICE '  - rechercher_archive(texte)';
+    RAISE NOTICE '  - restaurer_eleve_archive(id)';
+    RAISE NOTICE '  - get_historique_eleve(utilisateur_id)';
+    RAISE NOTICE 'Vues créées :';
+    RAISE NOTICE '  - v_preview_passage_terminale';
+    RAISE NOTICE '  - v_stats_archives';
+    RAISE NOTICE '  - v_eleves_archives_complet';
+    RAISE NOTICE '========================================';
+END $$;

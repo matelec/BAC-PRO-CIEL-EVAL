@@ -16,7 +16,7 @@
             <p class="eval-small">{{ evaluation.contexte }}</p>
         </div>
         <div class="header-actions">
-            <button class="btn-secondary" onclick="window.history.back()">
+            <button class="btn-secondary" onclick="window.location.href='{{ url_for('evaluations') }}'">
                 <i class="fas fa-arrow-left"></i> Retour
             </button>
             <button class="btn-warning" id="editEvalBtn" data-eval-id="{{ evaluation.id }}">

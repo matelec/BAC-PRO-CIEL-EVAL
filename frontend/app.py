@@ -387,6 +387,156 @@ def get_user_profile_proxy(user_id):
         return jsonify(response.json()), response.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+ # À ajouter dans votre app.py FRONTEND après vos routes existantes
+
+# ===== ROUTES PASSAGE DE CLASSE (PROXY VERS BACKEND) =====
+
+@app.route('/passage-classe')
+def passage_classe():
+    """Page de gestion du passage de classe"""
+    return render_template('passage_classe.html')
+
+@app.route('/api/passage-classe/preview', methods=['GET'])
+def proxy_preview_passage_classe():
+    """Proxy - Aperçu des passages de classe"""
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/passage-classe/preview")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/passage-avec-archivage', methods=['POST'])
+def proxy_passage_avec_archivage():
+    """Proxy - Archive Terminales et passe Première en Terminale"""
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/passage-classe/passage-avec-archivage")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives', methods=['GET'])
+def proxy_get_archives():
+    """Proxy - Liste des élèves archivés"""
+    try:
+        annee = request.args.get('annee')
+        limit = request.args.get('limit', 100)
+        offset = request.args.get('offset', 0)
         
+        params = {
+            'limit': limit,
+            'offset': offset
+        }
+        if annee:
+            params['annee'] = annee
+        
+        response = requests.get(
+            f"{BACKEND_URL}/api/passage-classe/archives",
+            params=params
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/stats', methods=['GET'])
+def proxy_stats_archives():
+    """Proxy - Statistiques des archives"""
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/passage-classe/archives/stats")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/search', methods=['GET'])
+def proxy_rechercher_archives():
+    """Proxy - Recherche dans les archives"""
+    try:
+        q = request.args.get('q', '')
+        response = requests.get(
+            f"{BACKEND_URL}/api/passage-classe/archives/search",
+            params={'q': q}
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/<int:archive_id>', methods=['GET'])
+def proxy_archive_detail(archive_id):
+    """Proxy - Détails d'un élève archivé"""
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/api/passage-classe/archives/{archive_id}"
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/<int:archive_id>/restaurer', methods=['POST'])
+def proxy_restaurer_archive(archive_id):
+    """Proxy - Restaure un élève archivé"""
+    try:
+        response = requests.post(
+            f"{BACKEND_URL}/api/passage-classe/archives/{archive_id}/restaurer"
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/export', methods=['GET'])
+def proxy_export_archives():
+    """Proxy - Export CSV des archives"""
+    try:
+        annee = request.args.get('annee')
+        params = {}
+        if annee:
+            params['annee'] = annee
+        
+        response = requests.get(
+            f"{BACKEND_URL}/api/passage-classe/archives/export",
+            params=params,
+            stream=True
+        )
+        
+        # Créer une réponse avec le même contenu
+        from flask import Response
+        
+        filename = f"archives_diplomes_{annee if annee else 'all'}.csv"
+        
+        return Response(
+            response.iter_content(chunk_size=1024),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename={filename}',
+                'Content-Type': 'text/csv; charset=utf-8'
+            }
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/historique/<int:utilisateur_id>', methods=['GET'])
+def proxy_historique_utilisateur(utilisateur_id):
+    """Proxy - Historique complet d'un élève"""
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/api/passage-classe/historique/{utilisateur_id}"
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/test', methods=['GET'])
+def proxy_test_passage_classe():
+    """Proxy - Test de connexion"""
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/passage-classe/test")
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'Erreur de connexion au backend',
+            'error': str(e)
+        }), 500
+        
+               
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

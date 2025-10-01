@@ -868,4 +868,308 @@ class Database:
                 
         except Exception as e:
             print(f"Erreur get_user_profile: {str(e)}")
-            return None            
+            return None 
+
+    # À ajouter dans votre classe Database (models.py)
+
+# ===== MÉTHODES PASSAGE DE CLASSE ET ARCHIVAGE =====
+
+    def get_preview_passage_terminale(self):
+        """Récupère l'aperçu des passages de classe"""
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM v_preview_passage_terminale ORDER BY classe_actuelle")
+                return cursor.fetchall()
+        except Exception as e:
+            print(f"Erreur get_preview_passage_terminale: {str(e)}")
+            return []
+
+    def passage_premiere_terminale_avec_archivage(self):
+        """
+        Archive les élèves de Terminale et fait passer les Première en Terminale
+        Retourne: dict avec nb_archives, nb_passes, message
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM passage_premiere_terminale_avec_archivage()")
+                result = cursor.fetchone()
+                self.connection.commit()
+                
+                if result:
+                    return {
+                        'success': True,
+                        'nb_archives': result['nb_archives'],
+                        'nb_passes': result['nb_passes'],
+                        'message': result['message']
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': 'Aucune donnée retournée'
+                    }
+                    
+        except Exception as e:
+            print(f"Erreur passage_premiere_terminale_avec_archivage: {str(e)}")
+            self.connection.rollback()
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def get_archives(self, annee=None, limit=100, offset=0):
+        """
+        Récupère la liste des élèves archivés
+        Args:
+            annee: Filtrer par année de diplôme (optionnel)
+            limit: Nombre max de résultats
+            offset: Décalage pour pagination
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                if annee:
+                    cursor.execute("""
+                        SELECT * FROM utilisateurs_archives
+                        WHERE annee_diplome = %s
+                        ORDER BY date_archivage DESC, nom, prenom
+                        LIMIT %s OFFSET %s
+                    """, (annee, limit, offset))
+                    
+                    cursor.execute("""
+                        SELECT COUNT(*) as total FROM utilisateurs_archives
+                        WHERE annee_diplome = %s
+                    """, (annee,))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM utilisateurs_archives
+                        ORDER BY date_archivage DESC, nom, prenom
+                        LIMIT %s OFFSET %s
+                    """, (limit, offset))
+                    
+                    cursor.execute("SELECT COUNT(*) as total FROM utilisateurs_archives")
+                
+                archives = cursor.fetchall()
+                total = cursor.fetchone()['total']
+                
+                return {
+                    'archives': archives,
+                    'total': total,
+                    'limit': limit,
+                    'offset': offset
+                }
+                
+        except Exception as e:
+            print(f"Erreur get_archives: {str(e)}")
+            return {
+                'archives': [],
+                'total': 0,
+                'limit': limit,
+                'offset': offset
+            }
+
+    def get_stats_archives(self):
+        """Récupère les statistiques des archives par promotion"""
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM v_stats_archives")
+                return cursor.fetchall()
+        except Exception as e:
+            print(f"Erreur get_stats_archives: {str(e)}")
+            return []
+
+    def rechercher_archive(self, recherche):
+        """
+        Recherche dans les archives par nom, prénom ou email
+        Args:
+            recherche: Terme de recherche
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM rechercher_archive(%s)", (recherche,))
+                return cursor.fetchall()
+        except Exception as e:
+            print(f"Erreur rechercher_archive: {str(e)}")
+            return []
+
+    def get_archive_detail(self, archive_id):
+        """
+        Récupère les détails complets d'un élève archivé
+        Args:
+            archive_id: ID de l'archive
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Infos générales de l'archive
+                cursor.execute("""
+                    SELECT * FROM v_eleves_archives_complet
+                    WHERE id = %s
+                """, (archive_id,))
+                archive = cursor.fetchone()
+                
+                if not archive:
+                    return None
+                
+                # Toutes les validations de cet élève
+                cursor.execute("""
+                    SELECT 
+                        v.id,
+                        v.niveau_validation,
+                        v.commentaire,
+                        v.date_validation,
+                        v.validateur,
+                        e.module,
+                        e.pole,
+                        c.code as competence_code,
+                        c.libelle as competence_libelle,
+                        i.code_item,
+                        i.description as item_description
+                    FROM validations v
+                    JOIN evaluations e ON v.evaluation_id = e.id
+                    JOIN items i ON v.item_id = i.id
+                    JOIN competences c ON i.competence_id = c.id
+                    WHERE v.utilisateur_id = %s
+                    ORDER BY v.date_validation DESC
+                """, (archive['utilisateur_id'],))
+                
+                validations = cursor.fetchall()
+                
+                return {
+                    'archive': archive,
+                    'validations': validations
+                }
+                
+        except Exception as e:
+            print(f"Erreur get_archive_detail: {str(e)}")
+            return None
+
+    def restaurer_eleve_archive(self, archive_id):
+        """
+        Restaure un élève archivé dans les utilisateurs actifs
+        Args:
+            archive_id: ID de l'archive à restaurer
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM restaurer_eleve_archive(%s)", (archive_id,))
+                result = cursor.fetchone()
+                self.connection.commit()
+                
+                return {
+                    'success': result['success'],
+                    'message': result['message']
+                }
+                
+        except Exception as e:
+            print(f"Erreur restaurer_eleve_archive: {str(e)}")
+            self.connection.rollback()
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def get_historique_eleve(self, utilisateur_id):
+        """
+        Récupère l'historique complet d'un élève (actif ou archivé)
+        Args:
+            utilisateur_id: ID de l'utilisateur
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Vérifier si l'élève existe (actif ou archivé)
+                cursor.execute("""
+                    SELECT 
+                        u.id, u.nom, u.prenom, u.classe, 'actif' as statut
+                    FROM utilisateurs u
+                    WHERE u.id = %s
+                    UNION ALL
+                    SELECT 
+                        ua.utilisateur_id as id, ua.nom, ua.prenom, 
+                        ua.classe_origine as classe, 'archivé' as statut
+                    FROM utilisateurs_archives ua
+                    WHERE ua.utilisateur_id = %s
+                """, (utilisateur_id, utilisateur_id))
+                
+                user = cursor.fetchone()
+                
+                if not user:
+                    return None
+                
+                # Récupérer l'historique complet
+                cursor.execute("SELECT * FROM get_historique_eleve(%s)", (utilisateur_id,))
+                validations = cursor.fetchall()
+                
+                return {
+                    'utilisateur': user,
+                    'validations': validations,
+                    'total_validations': len(validations)
+                }
+                
+        except Exception as e:
+            print(f"Erreur get_historique_eleve: {str(e)}")
+            return None
+
+    def exporter_archives_csv(self, annee=None):
+        """
+        Génère un CSV des archives
+        Args:
+            annee: Filtrer par année (optionnel)
+        Returns:
+            string: Contenu CSV
+        """
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                if annee:
+                    cursor.execute("""
+                        SELECT 
+                            ua.nom, ua.prenom, ua.email, ua.classe_origine,
+                            ua.specialite, ua.annee_diplome, ua.nb_validations,
+                            ua.date_archivage,
+                            COUNT(DISTINCT v.evaluation_id) as nb_evaluations,
+                            ROUND(AVG(v.niveau_validation)::numeric, 2) as moyenne_validation
+                        FROM utilisateurs_archives ua
+                        LEFT JOIN validations v ON ua.utilisateur_id = v.utilisateur_id
+                        WHERE ua.annee_diplome = %s
+                        GROUP BY ua.id
+                        ORDER BY ua.nom, ua.prenom
+                    """, (annee,))
+                else:
+                    cursor.execute("""
+                        SELECT 
+                            ua.nom, ua.prenom, ua.email, ua.classe_origine,
+                            ua.specialite, ua.annee_diplome, ua.nb_validations,
+                            ua.date_archivage,
+                            COUNT(DISTINCT v.evaluation_id) as nb_evaluations,
+                            ROUND(AVG(v.niveau_validation)::numeric, 2) as moyenne_validation
+                        FROM utilisateurs_archives ua
+                        LEFT JOIN validations v ON ua.utilisateur_id = v.utilisateur_id
+                        GROUP BY ua.id
+                        ORDER BY ua.annee_diplome DESC, ua.nom, ua.prenom
+                    """)
+                
+                archives = cursor.fetchall()
+                
+                # Générer le CSV
+                csv_lines = [
+                    'Nom;Prénom;Email;Classe;Spécialité;Année diplôme;Nb validations;Nb évaluations;Moyenne validation;Date archivage'
+                ]
+                
+                for archive in archives:
+                    date_archivage = archive['date_archivage'].strftime('%d/%m/%Y') if archive['date_archivage'] else ''
+                    line = ';'.join([
+                        str(archive['nom'] or ''),
+                        str(archive['prenom'] or ''),
+                        str(archive['email'] or ''),
+                        str(archive['classe_origine'] or ''),
+                        str(archive['specialite'] or ''),
+                        str(archive['annee_diplome'] or ''),
+                        str(archive['nb_validations'] or '0'),
+                        str(archive['nb_evaluations'] or '0'),
+                        str(archive['moyenne_validation'] or '0'),
+                        date_archivage
+                    ])
+                    csv_lines.append(line)
+                
+                return '\n'.join(csv_lines)
+                
+        except Exception as e:
+            print(f"Erreur exporter_archives_csv: {str(e)}")
+            return None                   

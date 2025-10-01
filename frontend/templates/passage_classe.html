@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Passage de Classe - Bac Pro CIEL{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='passage_classe.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container passage-classe-container">
+    <div class="page-header">
+        <div>
+            <h1>🎓 Passage de Classe et Archivage</h1>
+            <p class="page-subtitle">Gérez le passage des élèves de Première en Terminale avec archivage des diplômés</p>
+        </div>
+    </div>
+
+    <!-- Message de notification -->
+    <div id="notification" class="hidden"></div>
+
+    <!-- Onglets -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('passage')">Passage de classe</button>
+        <button class="tab" onclick="switchTab('archives')">Archives</button>
+        <button class="tab" onclick="switchTab('stats')">Statistiques</button>
+    </div>
+
+    <!-- Contenu Passage de classe -->
+    <div id="tab-passage" class="tab-content active">
+        <div class="section-card">
+            <h2>Aperçu du passage</h2>
+            <div id="preview-container" class="loading">
+                Chargement...
+            </div>
+
+            <button id="btn-passage" class="btn-primary" onclick="confirmerPassage()" disabled style="width: 100%; margin-top: 20px;">
+                🗄️ Archiver Terminales et passer Première → Terminale
+            </button>
+
+            <div class="info-box">
+                <h4>ℹ️ Déroulement de l'opération</h4>
+                <ul>
+                    <li>Les élèves de Terminale sont archivés (table utilisateurs_archives)</li>
+                    <li>Leurs validations restent dans la base et consultables</li>
+                    <li>Les élèves de Terminale sont supprimés de la table active</li>
+                    <li>Les élèves de Première passent en Terminale avec toutes leurs validations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu Archives -->
+    <div id="tab-archives" class="tab-content">
+        <div class="section-card">
+            <div class="card-header">
+                <h2>Élèves archivés</h2>
+                <button class="btn-export" onclick="exporterArchives()">
+                    📥 Exporter tout
+                </button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Rechercher un élève (nom, prénom, email)..." 
+                       onkeypress="if(event.key==='Enter') rechercherArchives()">
+                <button onclick="rechercherArchives()">🔍 Rechercher</button>
+            </div>
+
+            <div id="archives-container" class="loading">
+                Chargement...
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu Statistiques -->
+    <div id="tab-stats" class="tab-content">
+        <div class="section-card">
+            <h2>Statistiques par promotion</h2>
+            <div id="stats-container" class="loading">
+                Chargement...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation -->
+<div id="modal-confirm" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>⚠️ Confirmer le passage de classe</h3>
+            <span class="close" onclick="fermerModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="modal-details"></div>
+            <div class="notification notification-warning">
+                <strong>⚠️ Cette action est irréversible !</strong>
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="fermerModal()">Annuler</button>
+                <button class="btn-danger" onclick="executerPassage()">Confirmer le passage</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles spécifiques pour cette page */
+.passage-classe-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 12px 24px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab:hover {
+    color: #2c3e50;
+}
+
+.tab.active {
+    color: #3498db;
+    border-bottom-color: #3498db;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.preview-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-card.archive {
+    border-left: 4px solid #e74c3c;
+}
+
+.preview-card.passage {
+    border-left: 4px solid #3498db;
+}
+
+.archive-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.archive-item:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: rgba(255,255,255,0.2);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.search-box button {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.info-box {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.info-box h4 {
+    margin: 0 0 10px 0;
+    color: #1976d2;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.info-box li {
+    margin-bottom: 5px;
+    padding-left: 20px;
+    color: #424242;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+</style>
+{% endblock %}

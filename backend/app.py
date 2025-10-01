@@ -690,6 +690,234 @@ def get_user_profile(user_id):
         app.logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
+# À ajouter dans votre app.py après vos routes existantes
+
+# ===== ROUTES PASSAGE DE CLASSE ET ARCHIVAGE =====
+
+@app.route('/api/passage-classe/preview', methods=['GET'])
+def get_preview_passage_classe():
+    """Aperçu des passages de classe possibles"""
+    try:
+        print("📊 Récupération preview passage classe")
+        preview = db.get_preview_passage_terminale()
+        return jsonify(preview)
+    except Exception as e:
+        print(f"❌ Erreur get_preview_passage_classe: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/passage-avec-archivage', methods=['POST'])
+def passage_avec_archivage():
+    """
+    Archive les Terminales et fait passer les Première en Terminale
+    """
+    try:
+        print("🔄 Début passage avec archivage")
+        result = db.passage_premiere_terminale_avec_archivage()
+        
+        if result.get('success'):
+            print(f"✅ Passage réussi: {result['nb_archives']} archivés, {result['nb_passes']} passés")
+            return jsonify(result), 200
+        else:
+            print(f"❌ Échec passage: {result.get('error')}")
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"💥 Erreur passage_avec_archivage: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/passage-classe/archives', methods=['GET'])
+def get_archives():
+    """Liste des élèves archivés avec pagination"""
+    try:
+        annee = request.args.get('annee', type=int)
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        print(f"📚 Récupération archives - Année: {annee}, Limit: {limit}, Offset: {offset}")
+        
+        result = db.get_archives(annee=annee, limit=limit, offset=offset)
+        
+        # Convertir les dates en strings pour JSON
+        for archive in result['archives']:
+            if archive.get('date_archivage'):
+                archive['date_archivage'] = archive['date_archivage'].isoformat()
+            if archive.get('date_naissance'):
+                archive['date_naissance'] = archive['date_naissance'].isoformat()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ Erreur get_archives: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/stats', methods=['GET'])
+def get_stats_archives():
+    """Statistiques des archives par promotion"""
+    try:
+        print("📊 Récupération statistiques archives")
+        stats = db.get_stats_archives()
+        
+        # Convertir les dates en strings pour JSON
+        for stat in stats:
+            if stat.get('premiere_archive'):
+                stat['premiere_archive'] = stat['premiere_archive'].isoformat()
+            if stat.get('derniere_archive'):
+                stat['derniere_archive'] = stat['derniere_archive'].isoformat()
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        print(f"❌ Erreur get_stats_archives: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/search', methods=['GET'])
+def rechercher_archives():
+    """Recherche dans les archives"""
+    try:
+        q = request.args.get('q', '').strip()
+        
+        if not q:
+            return jsonify({'error': 'Terme de recherche requis'}), 400
+        
+        print(f"🔍 Recherche archives: '{q}'")
+        results = db.rechercher_archive(q)
+        
+        # Convertir les dates en strings
+        for result in results:
+            if result.get('date_archivage'):
+                result['date_archivage'] = result['date_archivage'].isoformat()
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        print(f"❌ Erreur rechercher_archives: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/<int:archive_id>', methods=['GET'])
+def get_archive_detail(archive_id):
+    """Détails complets d'un élève archivé"""
+    try:
+        print(f"📋 Récupération détails archive {archive_id}")
+        detail = db.get_archive_detail(archive_id)
+        
+        if not detail:
+            return jsonify({'error': 'Archive non trouvée'}), 404
+        
+        # Convertir les dates
+        if detail['archive'].get('date_archivage'):
+            detail['archive']['date_archivage'] = detail['archive']['date_archivage'].isoformat()
+        if detail['archive'].get('date_naissance'):
+            detail['archive']['date_naissance'] = detail['archive']['date_naissance'].isoformat()
+        
+        for validation in detail['validations']:
+            if validation.get('date_validation'):
+                validation['date_validation'] = validation['date_validation'].isoformat()
+        
+        return jsonify(detail)
+        
+    except Exception as e:
+        print(f"❌ Erreur get_archive_detail: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/archives/<int:archive_id>/restaurer', methods=['POST'])
+def restaurer_archive(archive_id):
+    """Restaure un élève archivé"""
+    try:
+        print(f"🔄 Restauration archive {archive_id}")
+        result = db.restaurer_eleve_archive(archive_id)
+        
+        if result.get('success'):
+            print(f"✅ {result['message']}")
+            return jsonify(result), 200
+        else:
+            print(f"❌ {result.get('error')}")
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"💥 Erreur restaurer_archive: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/passage-classe/archives/export', methods=['GET'])
+def exporter_archives():
+    """Export CSV des archives"""
+    try:
+        annee = request.args.get('annee', type=int)
+        
+        print(f"📥 Export archives - Année: {annee if annee else 'toutes'}")
+        
+        csv_content = db.exporter_archives_csv(annee=annee)
+        
+        if not csv_content:
+            return jsonify({'error': 'Erreur lors de la génération du CSV'}), 500
+        
+        # Créer la réponse avec le bon type MIME
+        filename = f"archives_diplomes_{annee if annee else 'all'}.csv"
+        
+        response = Response(
+            '\ufeff' + csv_content,  # BOM UTF-8 pour Excel
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename={filename}',
+                'Content-Type': 'text/csv; charset=utf-8'
+            }
+        )
+        
+        print(f"✅ Export CSV généré: {filename}")
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erreur exporter_archives: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/historique/<int:utilisateur_id>', methods=['GET'])
+def get_historique_utilisateur(utilisateur_id):
+    """Historique complet d'un élève (actif ou archivé)"""
+    try:
+        print(f"📜 Récupération historique utilisateur {utilisateur_id}")
+        historique = db.get_historique_eleve(utilisateur_id)
+        
+        if not historique:
+            return jsonify({'error': 'Utilisateur non trouvé'}), 404
+        
+        # Convertir les dates
+        for validation in historique['validations']:
+            if validation.get('date_validation'):
+                validation['date_validation'] = validation['date_validation'].isoformat()
+        
+        return jsonify(historique)
+        
+    except Exception as e:
+        print(f"❌ Erreur get_historique_utilisateur: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passage-classe/test', methods=['GET'])
+def test_passage_classe():
+    """Route de test pour vérifier la connexion"""
+    try:
+        with db.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute('SELECT NOW() as current_time')
+            result = cursor.fetchone()
+            
+        return jsonify({
+            'status': 'ok',
+            'message': 'Connexion à la base de données réussie',
+            'timestamp': result['current_time'].isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'Erreur de connexion à la base de données',
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     print("🚀 Démarrage de l'API Bac Pro CIEL - Backend corrigé")
     app.run(host='0.0.0.0', port=5000, debug=True)
