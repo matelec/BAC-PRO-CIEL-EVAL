@@ -2043,10 +2043,17 @@ tr:hover {
 .competences-table th {
     padding: 1rem;
     text-align: left;
-    font-weight: 600;
+    font-weight: 400;
     color: #4a5568;
     border-bottom: 2px solid #e2e8f0;
     white-space: nowrap;
+}
+.table-responsive {
+    width: 100% !important;
+    overflow-x: auto;
+    margin-top: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .competences-table tbody tr {
