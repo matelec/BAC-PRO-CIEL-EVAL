@@ -80,15 +80,16 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 
 🎯 Système de Statuts
 Conditions pour chaque statut :
-        ```bash
-        if nb_validations == 0:
-            statut = "Non évalué"
-        elif total >= 12 and niveau_moyen >= 3:
-            statut = "Maîtrisé"        # ✅ Bon niveau avec suffisamment d'évaluations
-        elif total >= 8 and niveau_moyen >= 2:
-            statut = "En cours"        # 🔄 Niveau correct mais peut progresser
-        else:
-            statut = "À travailler"    # ❌ Niveau insuffisant ou peu évalué
+
+    ```bash
+    if nb_validations == 0:
+      statut = "Non évalué"
+    elif total >= 12 and niveau_moyen >= 3:
+      statut = "Maîtrisé"        # ✅ Bon niveau avec suffisamment d'évaluations
+    elif total >= 8 and niveau_moyen >= 2:
+      statut = "En cours"        # 🔄 Niveau correct mais peut progresser
+    else:
+      statut = "À travailler"    # ❌ Niveau insuffisant ou peu évalué
 
 💡 Logique Pédagogique:
 "Maîtrisé" : L'élève démontre une compréhension solide et constante
