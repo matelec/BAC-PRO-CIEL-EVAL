@@ -41,42 +41,42 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 
 
 
-## Informations.
+    ## Informations
 
-Calcul des status des compétences
+    ### Calcul des status des compétences
 
-📊 Système de Notation
+    ## 📊 Système de Notation
 
-Échelle de Validation
+    ### Échelle de Validation
 
-Niveau 0 : Non validé
-Niveau 1 : Partiellement validé
-Niveau 2 : Moyennement validé
-Niveau 3 : Bien validé
-Niveau 4 : Très bien validé
+    - **Niveau 0** : Non validé
+    - **Niveau 1** : Partiellement validé  
+    - **Niveau 2** : Moyennement validé
+    - **Niveau 3** : Bien validé
+    - **Niveau 4** : Très bien validé
 
-1. Total des Points (total_niveaux)
+    ### 1. Total des Points (`total_niveaux`)
 
-Calcul : Somme de tous les niveaux de validation pour cette compétence
+    **Calcul** : Somme de tous les niveaux de validation pour cette compétence
 
-Exemple :
+    **Exemple** :
+    ```bash
+    Validation 1 : Niveau 3
+    Validation 2 : Niveau 2  
+    Validation 3 : Niveau 4
+    Total = 3 + 2 + 4 = 9 points
 
-Validation 1 : Niveau 3
-Validation 2 : Niveau 2
-Validation 3 : Niveau 4
-Total = 3 + 2 + 4 = 9 points
+    ### 2. Nombre de Validations (nb_validations)
 
-2. Nombre de Validations (nb_validations)
+    **Calcul** : Compte le nombre de fois où la compétence a été évaluée
 
-Calcul : Compte le nombre de fois où la compétence a été évaluée
+    **Exemple** : 3 validations = 3 évaluations
 
-Exemple : 3 validations = 3 évaluations
+    ### 3. Niveau Moyen (niveau_moyen)
 
-3. Niveau Moyen (niveau_moyen)
+    **Calcul** : total_niveaux ÷ nb_validations
 
-Calcul : total_niveaux ÷ nb_validations
-
-Exemple : 9 ÷ 3 = 3.0 de moyenne
+    **Exemple** : 9 ÷ 3 = 3.0 de moyenne
 
 🎯 Système de Statuts
 Conditions pour chaque statut :
