@@ -21,18 +21,23 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 
 2. Télécharger le dépôt :
     ```bash
-   wget https://github.com/matelec/BAC-PRO-CIEL-EVAL
+   wget https://github.com/matelec/BAC-PRO-CIEL-EVAL/archive/refs/heads/main.zip
 
 2. se connecter en root:
     ```bash
     su -
 
-4. se placer dans le répertoire /BAC-PRO-CIEL-EVAL/
+3. installer unzip
     ```bash
-    cd /BAC-PRO-CIEL-EVAL
+    apt install unzip
+
+4. se placer dans le répertoire /BAC-PRO-CIEL-EVAL-main/ et décompresser
+    ```bash
+    cd \home\utilisateur\BAC-PRO-CIEL-EVAL-main
+    unzip main.zip
+    cd BAC-PRO-CIEL-EVAL-main
 
 5. Installer l'environnement docker:
-
     ```bash
     chmod +x script-installation-docker.sh
     ./script-installation-docker.sh
