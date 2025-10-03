@@ -40,18 +40,17 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
     usermod -aG docker "votre utilisateur"
 
 
+## Informations
 
-    ## Informations
+### Calcul des status des compétences
 
-    ### Calcul des status des compétences
+## 📊 Système de Notation
 
-    ## 📊 Système de Notation
+### Échelle de Validation
 
-    ### Échelle de Validation
-
-    - **Niveau 0** : Non validé
-    - **Niveau 1** : Partiellement validé  
-    - **Niveau 2** : Moyennement validé
+- **Niveau 0** : Non validé
+- **Niveau 1** : Partiellement validé  
+- **Niveau 2** : Moyennement validé
     - **Niveau 3** : Bien validé
     - **Niveau 4** : Très bien validé
 
