@@ -81,7 +81,6 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 🎯 Système de Statuts
 Conditions pour chaque statut :
 
-    ```bash
     if nb_validations == 0:
       statut = "Non évalué"
     elif total >= 12 and niveau_moyen >= 3:
