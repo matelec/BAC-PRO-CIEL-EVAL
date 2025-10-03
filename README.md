@@ -59,26 +59,28 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 **Calcul** : Somme de tous les niveaux de validation pour cette compétence
 
 **Exemple** :
-    ```bash
-    Validation 1 : Niveau 3
-    Validation 2 : Niveau 2  
-    Validation 3 : Niveau 4
-    Total = 3 + 2 + 4 = 9 points
+- Validation 1 : Niveau 3
+- Validation 2 : Niveau 2  
+- Validation 3 : Niveau 4
+- Total = 3 + 2 + 4 = 9 points
 
 ### 2. Nombre de Validations (nb_validations)
 
 **Calcul** : Compte le nombre de fois où la compétence a été évaluée
 
-**Exemple** : 3 validations = 3 évaluations
+**Exemple** :
+- 3 validations = 3 évaluations
 
 ### 3. Niveau Moyen (niveau_moyen)
 
 **Calcul** : total_niveaux ÷ nb_validations
 
-**Exemple** : 9 ÷ 3 = 3.0 de moyenne
+**Exemple** :
+- 9 ÷ 3 = 3.0 de moyenne
 
 🎯 Système de Statuts
 Conditions pour chaque statut :
+        ```bash
         if nb_validations == 0:
             statut = "Non évalué"
         elif total >= 12 and niveau_moyen >= 3:
