@@ -1,7 +1,38 @@
 # BAC-PRO-CIEL-EVAL
-application d'évaluations des compétences 
 
-calcul des 
+application d'évaluations des compétences en BAC PRO CIEL
+
+Description:
+Application web permettant d'effectuer la validation et le suivi des compétences du
+BAC PRO CIEL. Elle permet d'éditer les 3 notes d'épreuves E2, E31 et E32 en fin d'année
+de certification.
+
+Déploiement:
+L'application se déploie sur un serveur linux avec l'environnement docker.
+
+Conseil d'installation:
+VPS sur serveur proxmox: 2 core, 4Go RAM et 32Go de HDD.
+Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
+
+Procédure d'installation:
+Se connecter à distance au VPS.
+
+Télécharger le dépôts:
+
+se connecter en root: su -
+
+se placer dans le répertoire /
+
+Installer l'environnement docker:
+      chmod +x script-installation-docker.sh
+      ./script-installation-docker.sh
+
+      usermod -aG docker "votre utilisateur"
+
+
+
+
+Calcul des status des compétences.
 
 📊 Système de Notation
 
@@ -13,7 +44,7 @@ Niveau 2 : Moyennement validé
 Niveau 3 : Bien validé
 Niveau 4 : Très bien validé
 
-1. Total des Points (total_niveaux): 
+1. Total des Points (total_niveaux):
 Calcul : Somme de tous les niveaux de validation pour cette compétence
 
 Exemple :
