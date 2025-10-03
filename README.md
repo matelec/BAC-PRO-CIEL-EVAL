@@ -20,20 +20,20 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 1. Se connecter à distance au VPS
 
 2. Télécharger le dépôt :
-   ```bash
+  
    wget https://github.com/matelec/BAC-PRO-CIEL-EVAL
 
 2. se connecter en root:
-    ```bash
+
     su -
 
 4. se placer dans le répertoire /BAC-PRO-CIEL-EVAL/
-    ```bash
+
     cd /BAC-PRO-CIEL-EVAL
 
 5. Installer l'environnement docker:
 
-    ```bash
+
     chmod +x script-installation-docker.sh
     ./script-installation-docker.sh
 
