@@ -41,7 +41,8 @@ Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
 
 
 
-##Informations.
+## Informations.
+
 Calcul des status des compétences.
 
 📊 Système de Notation
