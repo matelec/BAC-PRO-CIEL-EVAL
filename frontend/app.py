@@ -35,7 +35,7 @@ def bilan_intermediaire():
 
 @app.route('/bilan-final')
 def bilan_final():
-    utilisateurs = db.get_utilisateurs()
+    utilisateurs = get_backend_data('/api/utilisateurs')
     return render_template('bilan_final.html', 
                          utilisateurs=utilisateurs, 
                          type_bilan='final')                         

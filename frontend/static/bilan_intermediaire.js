@@ -1,7 +1,7 @@
 // Variables globales pour les graphiques
 let radarChartInstance = null;
 let barChartInstance = null;
-let typeBilan = 'intermediaire'; // ou 'final' selon la page
+let typeBilan = 'intermediaire'; 
 
 // Initialisation quand le DOM est chargé
 document.addEventListener('DOMContentLoaded', function() {
@@ -31,13 +31,6 @@ function initializeEventListeners() {
         });
     }
 
-    // Bouton d'export Excel (s'il existe)
-    const exportExcelBtn = document.getElementById('exportExcel');
-    if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', function() {
-            exportToExcel();
-        });
-    }
 }
 
 /**
@@ -172,11 +165,11 @@ function getCompetenceColorClass(competenceCode) {
     
     // Définition des groupes de compétences
     // Compétences en ORANGE
-    const orangeCompetences = ['C01', 'C04', 'C08'];
+    const orangeCompetences = ['C03', 'C07', 'C11'];
     // Compétences en VERT
-    const greenCompetences = ['C03', 'C07', 'C11'];
-    // Compétences restantes (C06, C09, C10) seront aussi en bleu
-    const bleuCompetences = ['C06', 'C09', 'C10'];
+    const greenCompetences = ['C06', 'C09', 'C10'];
+    // Compétences en BLEU
+    const bleuCompetences = ['C01', 'C04', 'C08'];
 
     if (orangeCompetences.includes(competenceCode)) {
         return 'competence-orange';
