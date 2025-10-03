@@ -91,32 +91,7 @@ Conditions pour chaque statut :
       statut = "À travailler"    # ❌ Niveau insuffisant ou peu évalué
 
 💡 Logique Pédagogique:
-"Maîtrisé" : L'élève démontre une compréhension solide et constante
-"En cours" : L'élève progresse mais n'a pas encore atteint l'excellence
-"À travailler" : L'élève a des difficultés ou n'a pas assez pratiqué
-"Non évalué" : La compétence n'a pas encore été évaluée            
-
-# BAC-PRO-CIEL-EVAL
-
-Application d'évaluations des compétences en BAC PRO CIEL
-
-## Description
-
-Application web permettant d'effectuer la validation et le suivi des compétences du BAC PRO CIEL. Elle permet d'éditer les 3 notes d'épreuves E2, E31 et E32 en fin d'année de certification.
-
-## Déploiement
-
-L'application se déploie sur un serveur linux avec l'environnement docker.
-
-### Conseil d'installation
-
-VPS sur serveur proxmox: 2 core, 4Go RAM et 32Go de HDD.  
-Installer debian 13 en mode serveur (sans graphique) et ssh port 22 actif.
-
-## Procédure d'installation
-
-1. Se connecter à distance au VPS
-
-2. Télécharger le dépôt :
-   ```bash
-   wget https://github.com/matelec/BAC-PRO-CIEL-EVAL
+-** "Maîtrisé"** : L'élève démontre une compréhension solide et constante
+- **"En cours"** : L'élève progresse mais n'a pas encore atteint l'excellence
+- **"À travailler"** : L'élève a des difficultés ou n'a pas assez pratiqué
+- **"Non évalué"** : La compétence n'a pas encore été évaluée            
